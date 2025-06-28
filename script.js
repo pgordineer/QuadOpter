@@ -39,71 +39,8 @@ function startGameRound(modeKey) {
   startGameRound.currentMode = modeKey;
 }
 
-// --- DOMContentLoaded: Register mode buttons ---
+// --- DOMContentLoaded: Register mode buttons and fix calendar popout ---
 document.addEventListener('DOMContentLoaded', function() {
-  // --- DOM references ---
-  window.singleDigitsGameDiv = document.getElementById('single-digits-game');
-  window.sdgNumbersDiv = document.getElementById('sdg-numbers');
-  window.sdgOpsDiv = document.getElementById('sdg-ops');
-  window.sdgExprDiv = document.getElementById('sdg-expression');
-  window.sdgSubmitBtn = document.getElementById('sdg-submit');
-  window.sdgFeedbackDiv = document.getElementById('sdg-feedback');
-  window.sdgBackBtn = document.getElementById('sdg-back');
-  window.sdgNextBtn = document.getElementById('sdg-next');
-  window.sdgGiveUpBtn = document.getElementById('sdg-giveup');
-  window.sdgUndoBtn = document.getElementById('sdg-undo');
-  window.mainMenuDiv = document.getElementById('main-menu');
-
-  // Register all mode buttons dynamically
-  Object.entries(window.modes).forEach(([modeKey, mode]) => {
-    const btn = document.getElementById(mode.buttonId);
-    if (btn) {
-      btn.addEventListener('click', () => window.startGameRound(modeKey));
-    }
-  });
-
-  // Button event handlers (must be set after DOM references)
-  window.sdgSubmitBtn.onclick = function() {
-    // ...existing code...
-    let expr = window.sdgState.expr.slice();
-    let evalExpr = expr.map(x => x === '×' ? '*' : x === '÷' ? '/' : x).join(' ');
-    let result = null;
-    try {
-      result = eval(evalExpr);
-    } catch (e) {
-      result = null;
-    }
-    if (Math.abs(result - 24) < 1e-6) {
-      window.sdgFeedbackDiv.textContent = '🎉 Correct!';
-      window.sdgFeedbackDiv.style.color = '#1976d2';
-      window.sdgNextBtn.style.display = '';
-      window.sdgSubmitBtn.style.display = 'none';
-      window.sdgGiveUpBtn.style.display = 'none';
-      window.renderSDG();
-    } else {
-      window.sdgFeedbackDiv.textContent = '❌ Try again!';
-      window.sdgFeedbackDiv.style.color = '#c00';
-    }
-  };
-  window.sdgGiveUpBtn.onclick = function() {
-    window.sdgFeedbackDiv.innerHTML = `<span style='color:#c00;'>Solution: <b>${window.currentSolution || 'No solution found'}</b></span>`;
-    window.sdgNextBtn.style.display = '';
-    window.sdgSubmitBtn.style.display = 'none';
-    window.sdgGiveUpBtn.style.display = 'none';
-    window.renderSDG();
-  };
-  window.sdgNextBtn.onclick = window.showNextGameRound;
-  window.sdgBackBtn.onclick = window.endGameRound;
-
-  // Fix calendar popout max width and centering for mobile
-  const dailyCalendarDiv = document.getElementById('daily-calendar');
-  if (dailyCalendarDiv) {
-    dailyCalendarDiv.style.maxWidth = '95vw';
-    dailyCalendarDiv.style.left = '50%';
-    dailyCalendarDiv.style.transform = 'translateX(-50%)';
-    dailyCalendarDiv.style.right = 'unset';
-  }
-});
   // --- DOM references ---
   window.singleDigitsGameDiv = document.getElementById('single-digits-game');
   window.sdgNumbersDiv = document.getElementById('sdg-numbers');
