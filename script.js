@@ -143,21 +143,32 @@ function renderSDG() {
   });
   // Render ops
   sdgOpsDiv.innerHTML = '';
-  ['+', '-', '×', '÷'].forEach(op => {
+  ['+', '-', '×', '÷', '(', ')'].forEach(op => {
     const btn = document.createElement('button');
     btn.textContent = op;
     btn.className = 'sdg-op-btn';
-    btn.disabled = (sdgState.step % 2 !== 1) || roundFinished;
-    btn.onclick = function() {
-      if (sdgState.step % 2 === 1 && !roundFinished) {
-        sdgState.expr.push(op);
-        sdgState.step++;
-        renderSDG();
-      }
-    };
+    // Parentheses can be inserted at any step, but you may want to add more logic for valid placement
+    if (op === '(' || op === ')') {
+      btn.disabled = roundFinished;
+      btn.onclick = function() {
+        if (!roundFinished) {
+          sdgState.expr.push(op);
+          renderSDG();
+        }
+      };
+    } else {
+      btn.disabled = (sdgState.step % 2 !== 1) || roundFinished;
+      btn.onclick = function() {
+        if (sdgState.step % 2 === 1 && !roundFinished) {
+          sdgState.expr.push(op);
+          sdgState.step++;
+          renderSDG();
+        }
+      };
+    }
     sdgOpsDiv.appendChild(btn);
   });
-  // Render expression
+  // Render expression (show parentheses as entered)
   sdgExprDiv.textContent = sdgState.expr.join(' ');
   // Enable submit only if 7 steps (n o n o n o n) and not finished
   sdgSubmitBtn.disabled = (sdgState.expr.length !== 7) || roundFinished;
@@ -167,6 +178,8 @@ function renderSDG() {
 
 function startSingleDigitsGame(numbers) {
   resetSDGState(numbers);
+  // Ensure number buttons are enabled for each new game
+  sdgState.used = [false, false, false, false];
   renderSDG();
   sdgFeedbackDiv.textContent = '';
   singleDigitsGameDiv.style.display = '';
@@ -190,8 +203,9 @@ function showNextSingleDigits() {
 }
 
 sdgSubmitBtn.onclick = function() {
-  // Evaluate the built expression
+  // Evaluate the built expression, allowing parentheses
   let expr = sdgState.expr.slice();
+  // Replace × and ÷ with * and /
   let evalExpr = expr.map(x => x === '×' ? '*' : x === '÷' ? '/' : x).join(' ');
   let result = null;
   try {
