@@ -70,8 +70,17 @@ function find24Solution(nums, allowedOps, target) {
       }
     }
   }
+  // Helper to count unique operations in an array
+  function uniqueOpCount(opsArr) {
+    return new Set(opsArr).size;
+  }
   for (let perm of permute(nums)) {
     for (let ops of opCombos(allowedOps, 3)) {
+      // Enforce operation diversity for Medium/Hard
+      let requireUniqueOps = 0;
+      if (allowedOps.length === 2) requireUniqueOps = 2; // Medium
+      if (allowedOps.length === 3) requireUniqueOps = 3; // Hard
+      if (requireUniqueOps > 0 && uniqueOpCount(ops) < requireUniqueOps) continue;
       // Try all parenthesizations
       let exprs = [
         `(${perm[0]}${ops[0]}${perm[1]})${ops[1]}${perm[2]}${ops[2]}${perm[3]}`,
@@ -205,8 +214,29 @@ function renderSDG() {
   sdgOpsDiv.appendChild(parenRow);
   // Render expression (show parentheses as entered)
   sdgExprDiv.textContent = sdgState.expr.join(' ');
-  // Enable submit only if 7 steps (n o n o n o n) and not finished
-  sdgSubmitBtn.disabled = (sdgState.expr.length !== 7) || roundFinished;
+
+  // Helper: check if all numbers are used
+  function allNumbersUsed() {
+    return sdgState.used.every(Boolean);
+  }
+  // Helper: check if parentheses are balanced
+  function parensBalanced(expr) {
+    let count = 0;
+    for (let x of expr) {
+      if (x === '(') count++;
+      if (x === ')') count--;
+      if (count < 0) return false;
+    }
+    return count === 0;
+  }
+  // Helper: check if last token is a number
+  function endsWithNumber(expr) {
+    if (expr.length === 0) return false;
+    return typeof expr[expr.length - 1] === 'number';
+  }
+  // Enable submit if all numbers used, parens balanced, ends with number, and not finished
+  const canSubmit = allNumbersUsed() && parensBalanced(sdgState.expr) && endsWithNumber(sdgState.expr) && !roundFinished;
+  sdgSubmitBtn.disabled = !canSubmit;
   // Enable give up if not finished
   sdgGiveUpBtn.disabled = roundFinished;
 }
@@ -325,12 +355,16 @@ function generateSolvableDoubleDigits(difficulty) {
     }
     let target = 24;
     let nums = [randInt(1,24), randInt(1,24), randInt(1,24), randInt(1,24)];
+    // Ensure at least one double digit (10-24)
+    if (!nums.some(n => n >= 10)) continue;
     let solution = find24Solution(nums, chosenOps, target);
     if (solution) {
       return {numbers: nums, solution: solution};
     }
   }
-  return {numbers: [randInt(1,24), randInt(1,24), randInt(1,24), randInt(1,24)], solution: null};
+  // Fallback: force at least one double digit
+  let fallback = [randInt(10,24), randInt(1,24), randInt(1,24), randInt(1,24)];
+  return {numbers: fallback, solution: null};
 }
 
 function showDoubleDigitsMode() {
