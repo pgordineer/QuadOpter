@@ -240,6 +240,79 @@ if (singleDigitsBtn) {
   singleDigitsBtn.addEventListener('click', showSingleDigitsMode);
 }
 
+// --- QuadOpter: Double Digits Mode ---
+function generateSolvableDoubleDigits(difficulty) {
+  let ops = ['+', '-', '*', '/'];
+  let opCount = {1: 1, 2: 2, 3: 3}[difficulty] || 2;
+  let maxTries = 1000;
+  for (let tries = 0; tries < maxTries; ++tries) {
+    let chosenOps = [];
+    for (let i = 0; i < 3; ++i) {
+      chosenOps.push(ops[randInt(0, opCount-1)]);
+    }
+    let target = 24;
+    let nums = [randInt(1,24), randInt(1,24), randInt(1,24), randInt(1,24)];
+    let solution = find24Solution(nums, chosenOps, target);
+    if (solution) {
+      return {numbers: nums, solution: solution};
+    }
+  }
+  return {numbers: [randInt(1,24), randInt(1,24), randInt(1,24), randInt(1,24)], solution: null};
+}
+
+function showDoubleDigitsMode() {
+  let {numbers, solution} = generateSolvableDoubleDigits(currentDifficulty);
+  currentNumbers = numbers;
+  currentSolution = solution;
+  startSingleDigitsGame(numbers);
+}
+
+const doubleDigitsBtn = document.getElementById('double-digit-mode-btn');
+if (doubleDigitsBtn) {
+  doubleDigitsBtn.addEventListener('click', showDoubleDigitsMode);
+}
+
+// --- QuadOpter: Integers Mode ---
+function generateSolvableIntegers(difficulty) {
+  let ops = ['+', '-', '*', '/'];
+  let opCount = {1: 1, 2: 2, 3: 3}[difficulty] || 2;
+  let maxTries = 1000;
+  for (let tries = 0; tries < maxTries; ++tries) {
+    let chosenOps = [];
+    for (let i = 0; i < 3; ++i) {
+      chosenOps.push(ops[randInt(0, opCount-1)]);
+    }
+    let target = 24;
+    let nums = [];
+    while (nums.length < 4) {
+      let n = randInt(-24, 24);
+      if (n !== 0) nums.push(n);
+    }
+    let solution = find24Solution(nums, chosenOps, target);
+    if (solution) {
+      return {numbers: nums, solution: solution};
+    }
+  }
+  let fallback = [];
+  while (fallback.length < 4) {
+    let n = randInt(-24, 24);
+    if (n !== 0) fallback.push(n);
+  }
+  return {numbers: fallback, solution: null};
+}
+
+function showIntegersMode() {
+  let {numbers, solution} = generateSolvableIntegers(currentDifficulty);
+  currentNumbers = numbers;
+  currentSolution = solution;
+  startSingleDigitsGame(numbers);
+}
+
+const integersBtn = document.getElementById('integers-mode-btn');
+if (integersBtn) {
+  integersBtn.addEventListener('click', showIntegersMode);
+}
+
 // --- Daily Mode Calendar Popout (QuadOpter) ---
 let dailySelectedDate = null;
 let calendarMonth = null;
