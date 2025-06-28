@@ -102,6 +102,7 @@ const sdgFeedbackDiv = document.getElementById('sdg-feedback');
 const sdgBackBtn = document.getElementById('sdg-back');
 const sdgNextBtn = document.getElementById('sdg-next');
 const sdgGiveUpBtn = document.getElementById('sdg-giveup');
+const sdgUndoBtn = document.getElementById('sdg-undo');
 const mainMenuDiv = document.getElementById('main-menu');
 
 let sdgState = {
