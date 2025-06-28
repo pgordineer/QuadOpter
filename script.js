@@ -100,6 +100,8 @@ const sdgExprDiv = document.getElementById('sdg-expression');
 const sdgSubmitBtn = document.getElementById('sdg-submit');
 const sdgFeedbackDiv = document.getElementById('sdg-feedback');
 const sdgBackBtn = document.getElementById('sdg-back');
+const sdgNextBtn = document.getElementById('sdg-next');
+const sdgGiveUpBtn = document.getElementById('sdg-giveup');
 const mainMenuDiv = document.getElementById('main-menu');
 
 let sdgState = {
@@ -125,9 +127,9 @@ function renderSDG() {
     const btn = document.createElement('button');
     btn.textContent = num;
     btn.className = 'sdg-btn';
-    btn.disabled = sdgState.used[idx];
+    btn.disabled = sdgState.used[idx] || sdgSubmitBtn.disabled;
     btn.onclick = function() {
-      if (sdgState.step % 2 === 0 && !sdgState.used[idx]) {
+      if (sdgState.step % 2 === 0 && !sdgState.used[idx] && !sdgSubmitBtn.disabled) {
         sdgState.expr.push(num);
         sdgState.used[idx] = true;
         sdgState.step++;
@@ -142,9 +144,9 @@ function renderSDG() {
     const btn = document.createElement('button');
     btn.textContent = op;
     btn.className = 'sdg-op-btn';
-    btn.disabled = (sdgState.step % 2 !== 1);
+    btn.disabled = (sdgState.step % 2 !== 1) || sdgSubmitBtn.disabled;
     btn.onclick = function() {
-      if (sdgState.step % 2 === 1) {
+      if (sdgState.step % 2 === 1 && !sdgSubmitBtn.disabled) {
         sdgState.expr.push(op);
         sdgState.step++;
         renderSDG();
@@ -156,6 +158,8 @@ function renderSDG() {
   sdgExprDiv.textContent = sdgState.expr.join(' ');
   // Enable submit only if 7 steps (n o n o n o n)
   sdgSubmitBtn.disabled = (sdgState.expr.length !== 7);
+  // Enable give up if not solved
+  sdgGiveUpBtn.disabled = sdgSubmitBtn.disabled;
 }
 
 function startSingleDigitsGame(numbers) {
@@ -164,6 +168,9 @@ function startSingleDigitsGame(numbers) {
   sdgFeedbackDiv.textContent = '';
   singleDigitsGameDiv.style.display = '';
   mainMenuDiv.style.display = 'none';
+  sdgNextBtn.style.display = 'none';
+  sdgSubmitBtn.style.display = '';
+  sdgGiveUpBtn.style.display = '';
 }
 
 function endSingleDigitsGame() {
@@ -171,10 +178,16 @@ function endSingleDigitsGame() {
   mainMenuDiv.style.display = '';
 }
 
+function showNextSingleDigits() {
+  let {numbers, solution} = generateSolvableSingleDigits(currentDifficulty);
+  currentNumbers = numbers;
+  currentSolution = solution;
+  startSingleDigitsGame(numbers);
+}
+
 sdgSubmitBtn.onclick = function() {
   // Evaluate the built expression
   let expr = sdgState.expr.slice();
-  // Convert × and ÷ to * and /
   let evalExpr = expr.map(x => x === '×' ? '*' : x === '÷' ? '/' : x).join(' ');
   let result = null;
   try {
@@ -185,10 +198,28 @@ sdgSubmitBtn.onclick = function() {
   if (Math.abs(result - 24) < 1e-6) {
     sdgFeedbackDiv.textContent = '🎉 Correct!';
     sdgFeedbackDiv.style.color = '#1976d2';
+    sdgNextBtn.style.display = '';
+    sdgSubmitBtn.style.display = 'none';
+    sdgGiveUpBtn.style.display = 'none';
+    // Disable further input
+    renderSDG();
   } else {
     sdgFeedbackDiv.textContent = '❌ Try again!';
     sdgFeedbackDiv.style.color = '#c00';
   }
+};
+
+sdgGiveUpBtn.onclick = function() {
+  sdgFeedbackDiv.innerHTML = `<span style='color:#c00;'>Solution: <b>${currentSolution || 'No solution found'}</b></span>`;
+  sdgNextBtn.style.display = '';
+  sdgSubmitBtn.style.display = 'none';
+  sdgGiveUpBtn.style.display = 'none';
+  // Disable further input
+  renderSDG();
+};
+
+sdgNextBtn.onclick = function() {
+  showNextSingleDigits();
 };
 
 sdgBackBtn.onclick = endSingleDigitsGame;
