@@ -121,15 +121,17 @@ function resetSDGState(numbers) {
 }
 
 function renderSDG() {
+  // Determine if the round is finished (correct or gave up)
+  const roundFinished = sdgNextBtn.style.display === '';
   // Render numbers
   sdgNumbersDiv.innerHTML = '';
   sdgState.numbers.forEach((num, idx) => {
     const btn = document.createElement('button');
     btn.textContent = num;
     btn.className = 'sdg-btn';
-    btn.disabled = sdgState.used[idx] || sdgSubmitBtn.disabled;
+    btn.disabled = sdgState.used[idx] || roundFinished;
     btn.onclick = function() {
-      if (sdgState.step % 2 === 0 && !sdgState.used[idx] && !sdgSubmitBtn.disabled) {
+      if (sdgState.step % 2 === 0 && !sdgState.used[idx] && !roundFinished) {
         sdgState.expr.push(num);
         sdgState.used[idx] = true;
         sdgState.step++;
@@ -144,9 +146,9 @@ function renderSDG() {
     const btn = document.createElement('button');
     btn.textContent = op;
     btn.className = 'sdg-op-btn';
-    btn.disabled = (sdgState.step % 2 !== 1) || sdgSubmitBtn.disabled;
+    btn.disabled = (sdgState.step % 2 !== 1) || roundFinished;
     btn.onclick = function() {
-      if (sdgState.step % 2 === 1 && !sdgSubmitBtn.disabled) {
+      if (sdgState.step % 2 === 1 && !roundFinished) {
         sdgState.expr.push(op);
         sdgState.step++;
         renderSDG();
@@ -156,10 +158,10 @@ function renderSDG() {
   });
   // Render expression
   sdgExprDiv.textContent = sdgState.expr.join(' ');
-  // Enable submit only if 7 steps (n o n o n o n)
-  sdgSubmitBtn.disabled = (sdgState.expr.length !== 7);
-  // Enable give up if not solved
-  sdgGiveUpBtn.disabled = sdgSubmitBtn.disabled;
+  // Enable submit only if 7 steps (n o n o n o n) and not finished
+  sdgSubmitBtn.disabled = (sdgState.expr.length !== 7) || roundFinished;
+  // Enable give up if not finished
+  sdgGiveUpBtn.disabled = roundFinished;
 }
 
 function startSingleDigitsGame(numbers) {
