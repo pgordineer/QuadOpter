@@ -208,55 +208,56 @@ let sdgState = {
 };
 
 function resetSDGState(numbers) {
-  sdgState.numbers = numbers.slice();
-  sdgState.used = [false, false, false, false];
-  sdgState.ops = [];
-  sdgState.expr = [];
-  sdgState.step = 0;
+  window.sdgState.numbers = Array.isArray(numbers) ? numbers.slice() : [];
+  window.sdgState.used = [false, false, false, false];
+  window.sdgState.ops = [];
+  window.sdgState.expr = [];
+  window.sdgState.step = 0;
 }
 
 function renderSDG() {
   // Determine if the round is finished (correct or gave up)
-  const roundFinished = sdgNextBtn.style.display === '';
+  const roundFinished = window.sdgNextBtn.style.display === '';
   // Render numbers
-  sdgNumbersDiv.innerHTML = '';
-  sdgState.numbers.forEach((num, idx) => {
+  window.sdgNumbersDiv.innerHTML = '';
+  if (!Array.isArray(window.sdgState.numbers)) window.sdgState.numbers = [];
+  window.sdgState.numbers.forEach((num, idx) => {
     const btn = document.createElement('button');
     btn.textContent = num;
     btn.className = 'sdg-btn';
-    btn.disabled = sdgState.used[idx] || roundFinished;
+    btn.disabled = window.sdgState.used[idx] || roundFinished;
     btn.onclick = function() {
-      if (sdgState.step % 2 === 0 && !sdgState.used[idx] && !roundFinished) {
-        sdgState.expr.push(num);
-        sdgState.used[idx] = true;
-        sdgState.step++;
-        renderSDG();
+      if (window.sdgState.step % 2 === 0 && !window.sdgState.used[idx] && !roundFinished) {
+        window.sdgState.expr.push(num);
+        window.sdgState.used[idx] = true;
+        window.sdgState.step++;
+        window.renderSDG();
       }
     };
-    sdgNumbersDiv.appendChild(btn);
+    window.sdgNumbersDiv.appendChild(btn);
   });
   // Render ops
-  sdgOpsDiv.innerHTML = '';
+  window.sdgOpsDiv.innerHTML = '';
   ['+', '-', '×', '÷'].forEach(op => {
     const btn = document.createElement('button');
     btn.textContent = op;
     btn.className = 'sdg-op-btn';
-    btn.disabled = (sdgState.step % 2 !== 1) || roundFinished;
+    btn.disabled = (window.sdgState.step % 2 !== 1) || roundFinished;
     btn.onclick = function() {
-      if (sdgState.step % 2 === 1 && !roundFinished) {
-        sdgState.expr.push(op);
-        sdgState.step++;
-        renderSDG();
+      if (window.sdgState.step % 2 === 1 && !roundFinished) {
+        window.sdgState.expr.push(op);
+        window.sdgState.step++;
+        window.renderSDG();
       }
     };
-    sdgOpsDiv.appendChild(btn);
+    window.sdgOpsDiv.appendChild(btn);
   });
   // Render expression
-  sdgExprDiv.textContent = sdgState.expr.join(' ');
+  window.sdgExprDiv.textContent = window.sdgState.expr.join(' ');
   // Enable submit only if 7 steps (n o n o n o n) and not finished
-  sdgSubmitBtn.disabled = (sdgState.expr.length !== 7) || roundFinished;
+  window.sdgSubmitBtn.disabled = (window.sdgState.expr.length !== 7) || roundFinished;
   // Enable give up if not finished
-  sdgGiveUpBtn.disabled = roundFinished;
+  window.sdgGiveUpBtn.disabled = roundFinished;
 }
 
 function startGameRound(numbers) {
