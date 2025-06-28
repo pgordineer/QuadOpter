@@ -174,6 +174,7 @@ function startSingleDigitsGame(numbers) {
   sdgNextBtn.style.display = 'none';
   sdgSubmitBtn.style.display = '';
   sdgGiveUpBtn.style.display = '';
+  sdgGiveUpBtn.disabled = false;
 }
 
 function endSingleDigitsGame() {
