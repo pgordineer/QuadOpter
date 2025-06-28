@@ -165,11 +165,13 @@ function renderSDG() {
     opsRow.appendChild(btn);
   });
   sdgOpsDiv.appendChild(opsRow);
+
   // Second row: ( )
   const parenRow = document.createElement('div');
   parenRow.style.display = 'flex';
   parenRow.style.justifyContent = 'center';
   parenRow.style.gap = '1em';
+  parenRow.style.marginTop = '0.5em';
   ['(', ')'].forEach(op => {
     const btn = document.createElement('button');
     btn.textContent = op;
