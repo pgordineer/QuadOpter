@@ -39,19 +39,6 @@ function startGameRound(modeKey) {
 
 // --- DOMContentLoaded: Register mode buttons and fix calendar popout ---
 document.addEventListener('DOMContentLoaded', function() {
-  // --- DOM references ---
-  window.singleDigitsGameDiv = document.getElementById('single-digits-game');
-  window.sdgNumbersDiv = document.getElementById('sdg-numbers');
-  window.sdgOpsDiv = document.getElementById('sdg-ops');
-  window.sdgExprDiv = document.getElementById('sdg-expression');
-  window.sdgSubmitBtn = document.getElementById('sdg-submit');
-  window.sdgFeedbackDiv = document.getElementById('sdg-feedback');
-  window.sdgBackBtn = document.getElementById('sdg-back');
-  window.sdgNextBtn = document.getElementById('sdg-next');
-  window.sdgGiveUpBtn = document.getElementById('sdg-giveup');
-  window.sdgUndoBtn = document.getElementById('sdg-undo');
-  window.mainMenuDiv = document.getElementById('main-menu');
-
   // Register all mode buttons dynamically
   Object.entries(modes).forEach(([modeKey, mode]) => {
     const btn = document.getElementById(mode.buttonId);
@@ -68,39 +55,6 @@ document.addEventListener('DOMContentLoaded', function() {
     dailyCalendarDiv.style.transform = 'translateX(-50%)';
     dailyCalendarDiv.style.right = 'unset';
   }
-
-  // --- Button event handlers ---
-  window.sdgSubmitBtn.onclick = function() {
-    // ...existing code...
-    let expr = sdgState.expr.slice();
-    let evalExpr = expr.map(x => x === '×' ? '*' : x === '÷' ? '/' : x).join(' ');
-    let result = null;
-    try {
-      result = eval(evalExpr);
-    } catch (e) {
-      result = null;
-    }
-    if (Math.abs(result - 24) < 1e-6) {
-      sdgFeedbackDiv.textContent = '🎉 Correct!';
-      sdgFeedbackDiv.style.color = '#1976d2';
-      sdgNextBtn.style.display = '';
-      sdgSubmitBtn.style.display = 'none';
-      sdgGiveUpBtn.style.display = 'none';
-      renderSDG();
-    } else {
-      sdgFeedbackDiv.textContent = '❌ Try again!';
-      sdgFeedbackDiv.style.color = '#c00';
-    }
-  };
-  window.sdgGiveUpBtn.onclick = function() {
-    sdgFeedbackDiv.innerHTML = `<span style='color:#c00;'>Solution: <b>${currentSolution || 'No solution found'}</b></span>`;
-    sdgNextBtn.style.display = '';
-    sdgSubmitBtn.style.display = 'none';
-    sdgGiveUpBtn.style.display = 'none';
-    renderSDG();
-  };
-  window.sdgNextBtn.onclick = showNextGameRound;
-  window.sdgBackBtn.onclick = endGameRound;
 });
 // --- QuadOpter: Single Digits Mode ---
 
