@@ -145,15 +145,27 @@ function renderSDG() {
   });
   // Render ops in two rows: main ops and parentheses
   sdgOpsDiv.innerHTML = '';
+  // Make sdgOpsDiv a flex column to force rows to stack
+  sdgOpsDiv.style.display = 'flex';
+  sdgOpsDiv.style.flexDirection = 'column';
+  sdgOpsDiv.style.alignItems = 'center';
+  sdgOpsDiv.style.width = '100%';
+
   // First row: + - × ÷
   const opsRow = document.createElement('div');
   opsRow.style.display = 'flex';
   opsRow.style.justifyContent = 'center';
-  opsRow.style.gap = '1em';
+  opsRow.style.gap = '0.5em';
+  opsRow.style.width = '100%';
+  opsRow.style.flexWrap = 'wrap';
   ['+', '-', '×', '÷'].forEach(op => {
     const btn = document.createElement('button');
     btn.textContent = op;
     btn.className = 'sdg-op-btn';
+    btn.style.flex = '1 1 0';
+    btn.style.minWidth = '2.5em';
+    btn.style.maxWidth = '5em';
+    btn.style.margin = '0.2em';
     btn.disabled = (sdgState.step % 2 !== 1) || roundFinished;
     btn.onclick = function() {
       if (sdgState.step % 2 === 1 && !roundFinished) {
@@ -170,12 +182,17 @@ function renderSDG() {
   const parenRow = document.createElement('div');
   parenRow.style.display = 'flex';
   parenRow.style.justifyContent = 'center';
-  parenRow.style.gap = '1em';
-  parenRow.style.marginTop = '0.5em';
+  parenRow.style.gap = '0.5em';
+  parenRow.style.width = '100%';
+  parenRow.style.marginTop = '0.3em';
   ['(', ')'].forEach(op => {
     const btn = document.createElement('button');
     btn.textContent = op;
     btn.className = 'sdg-op-btn';
+    btn.style.flex = '1 1 0';
+    btn.style.minWidth = '2.5em';
+    btn.style.maxWidth = '5em';
+    btn.style.margin = '0.2em';
     btn.disabled = roundFinished;
     btn.onclick = function() {
       if (!roundFinished) {
