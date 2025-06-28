@@ -814,3 +814,48 @@ footer {
   border-color: #ccc;
   cursor: not-allowed;
 }
+.sdg-action-btn {
+  min-width: 110px;
+  font-size: 1.08em;
+  padding: 0.7em 1.2em;
+  margin: 0.2em 0.3em;
+  border-radius: 0.5em;
+  border: none;
+  background: #1976d2;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  box-shadow: 0 1px 4px #1976d211;
+  outline: none;
+  display: inline-block;
+}
+.sdg-action-btn:disabled {
+  background: #eee;
+  color: #aaa;
+  cursor: not-allowed;
+}
+#sdg-giveup.sdg-action-btn {
+  background: #e57373;
+}
+#sdg-giveup.sdg-action-btn:hover {
+  background: #d32f2f;
+}
+#sdg-next.sdg-action-btn {
+  background: #43a047;
+}
+#sdg-next.sdg-action-btn:hover {
+  background: #2e7031;
+}
+#sdg-back.sdg-action-btn {
+  background: #888;
+}
+#sdg-back.sdg-action-btn:hover {
+  background: #555;
+}
+#sdg-submit.sdg-action-btn {
+  background: #1976d2;
+}
+#sdg-submit.sdg-action-btn:hover {
+  background: #125ea7;
+}
