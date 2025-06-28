@@ -21,10 +21,12 @@
     <img src="favicon/favicon-96x96.png" alt="QuadOpter Favicon" style="width:48px;height:48px;display:block;margin:auto;" />
     <div id="main-menu">
       <div id="main-highscores"></div>
-      <div style="margin: 1.5em 0 1.2em 0; text-align: center;">
-        <label for="difficulty-slider" style="font-size:1.1em; color:#1976d2; font-weight:600;">Difficulty:</label>
-        <input type="range" id="difficulty-slider" min="1" max="3" value="2" class="main-menu-slider">
-        <span id="difficulty-label" class="main-menu-btn" style="margin-left:1em;min-width:90px;display:inline-block;">Medium</span>
+      <div style="margin: 1.5em 0 1.2em 0; text-align: center; display: flex; flex-direction: column; align-items: center;">
+        <label for="difficulty-slider" style="font-size:1.1em; color:#1976d2; font-weight:600; margin-bottom:0.3em;">Difficulty:</label>
+        <div style="display: flex; align-items: center; gap: 1em;">
+          <input type="range" id="difficulty-slider" min="1" max="3" value="2" class="main-menu-slider">
+          <span id="difficulty-label" style="font-size:1.1em; color:#1976d2; min-width:70px; text-align:left;">Medium</span>
+        </div>
       </div>
       <button id="single-digit-mode-btn" class="main-menu-btn">Single Digits</button>
       <button id="double-digit-mode-btn" class="main-menu-btn">Double Digits</button>
@@ -49,6 +51,7 @@
       <div id="sdg-ops" style="display:flex;justify-content:center;gap:1em;margin-bottom:1.2em;"></div>
       <div style="display:flex;justify-content:center;gap:1em;margin-bottom:1em;flex-wrap:wrap;">
         <button id="sdg-submit" class="main-menu-btn sdg-action-btn">Submit</button>
+        <button id="sdg-undo" class="main-menu-btn sdg-action-btn" style="background:#f0f4fa;color:#1976d2;border:1.5px solid #1976d2;">Undo</button>
         <button id="sdg-giveup" class="main-menu-btn sdg-action-btn" style="background:#e57373;">Give Up</button>
         <button id="sdg-next" class="main-menu-btn sdg-action-btn" style="display:none;background:#43a047;">Next</button>
         <button id="sdg-back" class="main-menu-btn sdg-action-btn" style="background:#888;">Back to Menu</button>

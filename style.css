@@ -774,12 +774,21 @@ footer {
   border: none;
   background: #0078d7;
   color: #fff;
-  font-weight: 600;
+  font-weight: 400;
   cursor: pointer;
   transition: background 0.2s, color 0.2s, box-shadow 0.2s;
   box-shadow: 0 1px 4px #1976d211;
   outline: none;
   display: block;
+}
+#sdg-undo.sdg-action-btn {
+  background: #f0f4fa;
+  color: #1976d2;
+  border: 1.5px solid #1976d2;
+}
+#sdg-undo.sdg-action-btn:hover {
+  background: #e3eafc;
+  color: #1976d2;
 }
 .main-menu-btn:hover, .sdg-action-btn:hover {
   background: #005fa3;
@@ -801,7 +810,7 @@ footer {
   border: 2px solid #1976d2;
   background: #f0f4fa;
   color: #1976d2;
-  font-weight: 600;
+  font-weight: 400;
   cursor: pointer;
   transition: background 0.18s, color 0.18s, border 0.18s;
   box-shadow: 0 1px 4px #1976d211;
