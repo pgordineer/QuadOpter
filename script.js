@@ -1,3 +1,41 @@
+// --- Modular Game Modes Config ---
+const modes = {
+  singleDigits: {
+    label: 'Single Digits',
+    generator: generateSolvableSingleDigits,
+    buttonId: 'single-digit-mode-btn',
+  },
+  doubleDigits: {
+    label: 'Double Digits',
+    generator: generateSolvableDoubleDigits,
+    buttonId: 'double-digit-mode-btn',
+  },
+  integers: {
+    label: 'Integers',
+    generator: generateSolvableIntegers,
+    buttonId: 'integers-mode-btn',
+  },
+  // Add new modes here as needed
+};
+
+function startGameRound(modeKey) {
+  const mode = modes[modeKey];
+  if (!mode) return;
+  let {numbers, solution} = mode.generator(currentDifficulty);
+  currentNumbers = numbers;
+  currentSolution = solution;
+  resetSDGState(numbers);
+  renderSDG();
+  sdgFeedbackDiv.textContent = '';
+  singleDigitsGameDiv.style.display = '';
+  mainMenuDiv.style.display = 'none';
+  sdgNextBtn.style.display = 'none';
+  sdgSubmitBtn.style.display = '';
+  sdgGiveUpBtn.style.display = '';
+  sdgGiveUpBtn.disabled = false;
+  // Store current mode for next/undo/etc if needed
+  startGameRound.currentMode = modeKey;
+}
 // --- QuadOpter: Single Digits Mode ---
 
 // Difficulty levels: 1 = Easy, 2 = Medium, 3 = Hard
@@ -165,7 +203,7 @@ function renderSDG() {
   sdgGiveUpBtn.disabled = roundFinished;
 }
 
-function startSingleDigitsGame(numbers) {
+function startGameRound(numbers) {
   resetSDGState(numbers);
   renderSDG();
   sdgFeedbackDiv.textContent = '';
@@ -174,18 +212,19 @@ function startSingleDigitsGame(numbers) {
   sdgNextBtn.style.display = 'none';
   sdgSubmitBtn.style.display = '';
   sdgGiveUpBtn.style.display = '';
+  sdgGiveUpBtn.disabled = false;
 }
 
-function endSingleDigitsGame() {
+function endGameRound() {
   singleDigitsGameDiv.style.display = 'none';
   mainMenuDiv.style.display = '';
 }
 
-function showNextSingleDigits() {
-  let {numbers, solution} = generateSolvableSingleDigits(currentDifficulty);
-  currentNumbers = numbers;
-  currentSolution = solution;
-  startSingleDigitsGame(numbers);
+
+function showNextGameRound() {
+  // Use the last played mode
+  const modeKey = startGameRound.currentMode || 'singleDigits';
+  startGameRound(modeKey);
 }
 
 sdgSubmitBtn.onclick = function() {
@@ -221,24 +260,17 @@ sdgGiveUpBtn.onclick = function() {
   renderSDG();
 };
 
-sdgNextBtn.onclick = function() {
-  showNextSingleDigits();
-};
+sdgNextBtn.onclick = showNextGameRound;
 
-sdgBackBtn.onclick = endSingleDigitsGame;
+sdgBackBtn.onclick = endGameRound;
 
-// Overwrite showSingleDigitsMode to launch the UI
-function showSingleDigitsMode() {
-  let {numbers, solution} = generateSolvableSingleDigits(currentDifficulty);
-  currentNumbers = numbers;
-  currentSolution = solution;
-  startSingleDigitsGame(numbers);
-}
-// Hook up the Single Digits mode button
-const singleDigitsBtn = document.getElementById('single-digit-mode-btn');
-if (singleDigitsBtn) {
-  singleDigitsBtn.addEventListener('click', showSingleDigitsMode);
-}
+// Register all mode buttons dynamically
+Object.entries(modes).forEach(([modeKey, mode]) => {
+  const btn = document.getElementById(mode.buttonId);
+  if (btn) {
+    btn.addEventListener('click', () => startGameRound(modeKey));
+  }
+});
 
 // --- QuadOpter: Double Digits Mode ---
 function generateSolvableDoubleDigits(difficulty) {
@@ -260,17 +292,6 @@ function generateSolvableDoubleDigits(difficulty) {
   return {numbers: [randInt(1,24), randInt(1,24), randInt(1,24), randInt(1,24)], solution: null};
 }
 
-function showDoubleDigitsMode() {
-  let {numbers, solution} = generateSolvableDoubleDigits(currentDifficulty);
-  currentNumbers = numbers;
-  currentSolution = solution;
-  startSingleDigitsGame(numbers);
-}
-
-const doubleDigitsBtn = document.getElementById('double-digit-mode-btn');
-if (doubleDigitsBtn) {
-  doubleDigitsBtn.addEventListener('click', showDoubleDigitsMode);
-}
 
 // --- QuadOpter: Integers Mode ---
 function generateSolvableIntegers(difficulty) {
@@ -301,17 +322,6 @@ function generateSolvableIntegers(difficulty) {
   return {numbers: fallback, solution: null};
 }
 
-function showIntegersMode() {
-  let {numbers, solution} = generateSolvableIntegers(currentDifficulty);
-  currentNumbers = numbers;
-  currentSolution = solution;
-  startSingleDigitsGame(numbers);
-}
-
-const integersBtn = document.getElementById('integers-mode-btn');
-if (integersBtn) {
-  integersBtn.addEventListener('click', showIntegersMode);
-}
 
 // --- Daily Mode Calendar Popout (QuadOpter) ---
 let dailySelectedDate = null;
