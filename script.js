@@ -110,7 +110,8 @@ let sdgState = {
   used: [false, false, false, false],
   ops: [],
   expr: [],
-  step: 0
+  step: 0,
+  finished: false // Track if round is finished
 };
 
 function resetSDGState(numbers) {
@@ -119,11 +120,12 @@ function resetSDGState(numbers) {
   sdgState.ops = [];
   sdgState.expr = [];
   sdgState.step = 0;
+  sdgState.finished = false;
 }
 
 function renderSDG() {
-  // Determine if the round is finished (correct or gave up)
-  const roundFinished = sdgNextBtn.style.display === '';
+  // Use sdgState.finished to track round completion
+  const roundFinished = sdgState.finished;
   // Render numbers
   sdgNumbersDiv.innerHTML = '';
   sdgState.numbers.forEach((num, idx) => {
@@ -141,33 +143,47 @@ function renderSDG() {
     };
     sdgNumbersDiv.appendChild(btn);
   });
-  // Render ops
+  // Render ops in two rows: main ops and parentheses
   sdgOpsDiv.innerHTML = '';
-  ['+', '-', '×', '÷', '(', ')'].forEach(op => {
+  // First row: + - × ÷
+  const opsRow = document.createElement('div');
+  opsRow.style.display = 'flex';
+  opsRow.style.justifyContent = 'center';
+  opsRow.style.gap = '1em';
+  ['+', '-', '×', '÷'].forEach(op => {
     const btn = document.createElement('button');
     btn.textContent = op;
     btn.className = 'sdg-op-btn';
-    // Parentheses can be inserted at any step, but you may want to add more logic for valid placement
-    if (op === '(' || op === ')') {
-      btn.disabled = roundFinished;
-      btn.onclick = function() {
-        if (!roundFinished) {
-          sdgState.expr.push(op);
-          renderSDG();
-        }
-      };
-    } else {
-      btn.disabled = (sdgState.step % 2 !== 1) || roundFinished;
-      btn.onclick = function() {
-        if (sdgState.step % 2 === 1 && !roundFinished) {
-          sdgState.expr.push(op);
-          sdgState.step++;
-          renderSDG();
-        }
-      };
-    }
-    sdgOpsDiv.appendChild(btn);
+    btn.disabled = (sdgState.step % 2 !== 1) || roundFinished;
+    btn.onclick = function() {
+      if (sdgState.step % 2 === 1 && !roundFinished) {
+        sdgState.expr.push(op);
+        sdgState.step++;
+        renderSDG();
+      }
+    };
+    opsRow.appendChild(btn);
   });
+  sdgOpsDiv.appendChild(opsRow);
+  // Second row: ( )
+  const parenRow = document.createElement('div');
+  parenRow.style.display = 'flex';
+  parenRow.style.justifyContent = 'center';
+  parenRow.style.gap = '1em';
+  ['(', ')'].forEach(op => {
+    const btn = document.createElement('button');
+    btn.textContent = op;
+    btn.className = 'sdg-op-btn';
+    btn.disabled = roundFinished;
+    btn.onclick = function() {
+      if (!roundFinished) {
+        sdgState.expr.push(op);
+        renderSDG();
+      }
+    };
+    parenRow.appendChild(btn);
+  });
+  sdgOpsDiv.appendChild(parenRow);
   // Render expression (show parentheses as entered)
   sdgExprDiv.textContent = sdgState.expr.join(' ');
   // Enable submit only if 7 steps (n o n o n o n) and not finished
@@ -178,8 +194,6 @@ function renderSDG() {
 
 function startSingleDigitsGame(numbers) {
   resetSDGState(numbers);
-  // Ensure number buttons are enabled for each new game
-  sdgState.used = [false, false, false, false];
   renderSDG();
   sdgFeedbackDiv.textContent = '';
   singleDigitsGameDiv.style.display = '';
@@ -219,7 +233,8 @@ sdgSubmitBtn.onclick = function() {
     sdgNextBtn.style.display = '';
     sdgSubmitBtn.style.display = 'none';
     sdgGiveUpBtn.style.display = 'none';
-    // Disable further input
+    // Mark round as finished
+    sdgState.finished = true;
     renderSDG();
   } else {
     sdgFeedbackDiv.textContent = '❌ Try again!';
@@ -232,12 +247,36 @@ sdgGiveUpBtn.onclick = function() {
   sdgNextBtn.style.display = '';
   sdgSubmitBtn.style.display = 'none';
   sdgGiveUpBtn.style.display = 'none';
-  // Disable further input
+  // Mark round as finished
+  sdgState.finished = true;
   renderSDG();
 };
 
 sdgNextBtn.onclick = function() {
   showNextSingleDigits();
+};
+
+// Undo button logic (restore correct state)
+sdgUndoBtn.onclick = function() {
+  if (sdgState.expr.length === 0 || sdgState.finished) return;
+  // Remove last entry
+  const last = sdgState.expr.pop();
+  // If it was a number, unmark it as used and decrement step
+  if (typeof last === 'number') {
+    // Find the first used index matching this number (from left)
+    for (let i = 0; i < sdgState.numbers.length; ++i) {
+      if (sdgState.numbers[i] === last && sdgState.used[i]) {
+        sdgState.used[i] = false;
+        break;
+      }
+    }
+    sdgState.step--;
+  } else if (['+', '-', '×', '÷'].includes(last)) {
+    // If it was an op, just decrement step
+    sdgState.step--;
+  }
+  // Parentheses do not affect step or used
+  renderSDG();
 };
 
 sdgBackBtn.onclick = endSingleDigitsGame;
