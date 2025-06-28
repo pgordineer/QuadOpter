@@ -764,15 +764,53 @@ footer {
   margin-top: 0.2em;
   letter-spacing: 0.01em;
 }
-@media (max-width: 700px) {
-  .saviour-grid {
-    max-width: 99vw;
-    gap: 0.3em;
-  }
-  .saviour-flag-btn img {
-    width: 38px !important;
-    height: 26px !important;
-    object-fit: contain;
-    background: #fff;
-  }
+.sdg-btn {
+  font-size: 1.25em;
+  padding: 0.6em 1.2em;
+  margin: 0.2em;
+  border-radius: 0.5em;
+  border: 2px solid #1976d2;
+  background: #f0f4fa;
+  color: #1976d2;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, border 0.18s;
+  box-shadow: 0 1px 4px #1976d211;
+  outline: none;
+}
+.sdg-btn.selected, .sdg-btn:active {
+  background: #1976d2;
+  color: #fff;
+  border-color: #1976d2;
+}
+.sdg-btn:disabled {
+  background: #eee;
+  color: #aaa;
+  border-color: #ccc;
+  cursor: not-allowed;
+}
+.sdg-op-btn {
+  font-size: 1.3em;
+  padding: 0.6em 1.1em;
+  margin: 0.2em;
+  border-radius: 0.5em;
+  border: 2px solid #1976d2;
+  background: #fff;
+  color: #1976d2;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, border 0.18s;
+  box-shadow: 0 1px 4px #1976d211;
+  outline: none;
+}
+.sdg-op-btn.selected, .sdg-op-btn:active {
+  background: #1976d2;
+  color: #fff;
+  border-color: #1976d2;
+}
+.sdg-op-btn:disabled {
+  background: #eee;
+  color: #aaa;
+  border-color: #ccc;
+  cursor: not-allowed;
 }
