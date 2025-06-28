@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuadOpter - Math 24 Game</title>
+  <meta name="description" content="A mobile-friendly math puzzle game inspired by Math24." />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="favicon/favicon.ico" sizes="any">
+  <link rel="icon" href="favicon/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="favicon/apple-touch-icon.png">
+  <link rel="manifest" href="favicon/site.webmanifest">
+  <link rel="icon" href="favicon/favicon-96x96.png" sizes="96x96">
+  <link rel="icon" href="favicon/web-app-manifest-192x192.png" sizes="192x192">
+  <link rel="icon" href="favicon/web-app-manifest-512x512.png" sizes="512x512">
+  <meta name="apple-mobile-web-app-title" content="QuadOpter">
+</head>
+<body>
+  <div class="container">
+    <h1>QuadOpter</h1>
+    <img src="favicon/favicon-96x96.png" alt="QuadOpter Favicon" style="width:48px;height:48px;display:block;margin:auto;" />
+    <div id="main-menu">
+      <div id="main-highscores"></div>
+      <div style="margin: 1.5em 0 1.2em 0; text-align: center;">
+        <label for="difficulty-slider" style="font-size:1.1em; color:#1976d2; font-weight:600;">Difficulty:</label>
+        <input type="range" id="difficulty-slider" min="1" max="3" value="2" class="main-menu-slider">
+        <span id="difficulty-label" class="main-menu-btn" style="margin-left:1em;min-width:90px;display:inline-block;">Medium</span>
+      </div>
+      <button id="single-digit-mode-btn" class="main-menu-btn">Single Digits</button>
+      <button id="double-digit-mode-btn" class="main-menu-btn">Double Digits</button>
+      <button id="integers-mode-btn" class="main-menu-btn">Integers</button>
+      <button id="algebra-mode-btn" class="main-menu-btn">Algebra</button>
+      <button id="daily-mode-btn" class="main-menu-btn" style="display:block;position:relative;padding-bottom:0.2em;">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;">
+          <span id="daily-btn-label" style="display:block;">Daily</span>
+          <span id="daily-date-pill" class="date-pill" style="margin-top:0.5em;margin-left:auto;margin-right:auto;display:block;width:max-content;align-items:center;gap:0.3em;padding:0.25em 0.9em 0.25em 0.8em;font-size:0.98em;background:#f0f4fa;color:#1976d2;border-radius:999px;border:1.5px solid #1976d2;box-shadow:0 1px 4px #1976d211;cursor:pointer;transition:background 0.18s;">
+            <span id="daily-date-text"></span>
+            <span style="font-size:0.98em;margin-left:0.5em;">Click to change</span>
+          </span>
+        </div>
+      </button>
+      <div id="daily-calendar" class="main-menu-calendar" style="display:none;z-index:1001;"></div>
+      <div id="congrats" style="display:none;"></div>
+    </div>
+    <div id="study-page" style="display:none; max-width:100vw;">
+      <button id="back-to-menu-study-top" class="back-to-menu-study" style="margin-bottom:1rem;">Back to Menu</button>
+      <h2 style="text-align:center;">Study All Flags</h2>
+      <div style="text-align:center; color:#555; font-size:0.98em; margin-bottom:0.5em;">Scroll horizontally to see more flag details &rarr;</div>
+      <div id="study-scrollbar-top" style="overflow-x:auto; width:100%; border-bottom:1px solid #eee; margin-bottom:0.2em;">
+        <div style="width:max-content; height:1px;"></div>
+      </div>
+      <div style="overflow-x:auto;" id="study-scrollbar-bottom">
+        <table id="study-table" class="study-table">
+          <thead>
+            <tr>
+              <th><button class="sort-btn" data-sort="country">Country</button></th>
+              <th><button class="sort-btn" data-sort="code">Code</button></th>
+              <th><button class="sort-btn" data-sort="emoji">Unicode</button></th>
+              <th><button class="sort-btn" data-sort="wiki">Wiki</button></th>
+              <th><button class="sort-btn" data-sort="img">Image</button></th>
+              <th><button class="sort-btn" data-sort="gdp">GDP<br>(M USD)</button></th>
+              <th><button class="sort-btn" data-sort="area">Area<br>(km²)</button></th>
+              <th><button class="sort-btn" data-sort="coastline_km">Coastline<br>(km)</button></th>
+              <th><button class="sort-btn" data-sort="nuclear_arms">Nuclear<br>Arms</button></th>
+              <th><button class="sort-btn" data-sort="min_lat">Min Lat</button></th>
+              <th><button class="sort-btn" data-sort="max_lat">Max Lat</button></th>
+              <th><button class="sort-btn" data-sort="min_lng">Min Lng</button></th>
+              <th><button class="sort-btn" data-sort="max_lng">Max Lng</button></th>
+            </tr>
+          </thead>
+          <tbody id="study-tbody"></tbody>
+        </table>
+      </div>
+      <button id="back-to-menu-study" class="back-to-menu-study" style="margin-top:1rem;">Back to Menu</button>
+    </div>
+    <div id="game-entry" style="display:none;">
+      <div class="score-row" style="flex-direction:column;align-items:center;gap:0;">
+        <span id="score-entry" class="score-label"></span>
+        <span id="streak-entry" class="score-label"></span>
+        <span id="highscore-entry" class="score-label"></span>
+      </div>
+      <div id="flag-image-entry" class="flag-image"></div>
+      <div id="autocomplete-list" class="autocomplete-list" style="display:none;"></div>
+      <input type="text" id="guess" placeholder="Guess the country..." autocomplete="off" />
+      <button id="submit">Guess</button>
+      <button id="hint" style="display:none;">Hint</button>
+      <button id="skip">Skip</button>
+      <div id="result"></div>
+      <div id="hint-text" style="color:#0078d7;margin-bottom:0.5rem;"></div>
+      <div id="wiki-link"></div>
+      <button id="back-to-menu-entry" style="margin-top:1rem;">Back to Menu</button>
+      <div style="margin-top:0.5rem;text-align:center;">
+        <label style="font-size:0.98em;">
+          <input type="checkbox" id="autocomplete-toggle" checked /> Autocomplete
+        </label>
+      </div>
+    </div>
+    <div id="game-mc" style="display:none;">
+      <div class="score-row" style="flex-direction:column;align-items:center;gap:0;">
+        <span id="score-mc" class="score-label"></span>
+        <span id="streak-mc" class="score-label"></span>
+        <span id="highscore-mc" class="score-label"></span>
+      </div>
+      <div id="flag-image-mc" class="flag-image"></div>
+      <div id="mc-options"></div>
+      <div id="result-mc"></div>
+      <div id="hint-text-mc" style="color:#0078d7;margin-bottom:0.5rem;"></div>
+      <div id="wiki-link-mc"></div>
+      <button id="next-mc" style="display:none;">Next Flag</button>
+      <button id="back-to-menu-mc" style="margin-top:1rem;">Back to Menu</button>
+    </div>
+    <!-- Reverse Choice Mode -->
+    <div id="game-rc" style="display:none;flex-direction:column;align-items:center;">
+      <div class="score-row" style="flex-direction:column;align-items:center;gap:0;">
+        <span id="score-rc" class="score-label"></span>
+        <span id="streak-rc" class="score-label"></span>
+        <span id="highscore-rc" class="score-label"></span>
+      </div>
+      <div id="rc-country" style="font-size:2rem;margin:1em 0 1em 0;"></div>
+      <div id="rc-options" class="rc-grid"></div>
+      <div id="result-rc" style="margin:0.5em 0 0.5em 0;"></div>
+      <div id="wiki-link-rc" style="margin-bottom:1em;"></div>
+      <button id="next-rc" class="main-btn rc-btn" style="display:none;">Next</button>
+      <button id="back-to-menu-rc" class="main-btn rc-btn">Back to Menu</button>
+    </div>
+    <!-- Saviour Mode -->
+    <div id="game-saviour" style="display:none;flex-direction:column;align-items:center;">
+      <div class="score-row" style="flex-direction:column;align-items:center;gap:0;">
+        <div id="score-saviour" class="score-label"></div>
+        <div id="streak-saviour" class="score-label"></div>
+        <div id="highscore-saviour" class="score-label"></div>
+      </div>
+      <div id="saviour-undo-redo" style="width:100%;margin-bottom:0.7em;"></div>
+      <div style="display:flex;align-items:center;gap:0.5em;">
+        <div id="saviour-instructions" style="text-align:center;margin:1em 0 1em 0;">
+          <b>Save the highlighted flag!</b> Use actions to eliminate all but the green-bordered flag.
+        </div>
+        <button id="saviour-info-btn" class="saviour-action-btn" title="Action Info" style="font-size:1.3em;padding:0.3em 0.7em;line-height:1.1;">ℹ️</button>
+      </div>
+      <div id="result-saviour" style="margin:0.5em 0 0.5em 0;"></div>
+      <div id="saviour-grid" class="saviour-grid"></div>
+      <div id="saviour-actions" class="saviour-actions"></div>
+      <button id="next-saviour" class="main-btn saviour-btn" style="display:none;">Next</button>
+      <button id="back-to-menu-saviour" class="back-to-menu-study">Back to Menu</button>
+    </div>
+    <div id="flag-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;right:0;bottom:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);">
+      <div id="flag-modal-content" style="position:relative;max-width:95vw;max-height:90vh;display:flex;align-items:center;justify-content:center;">
+        <img id="flag-modal-img" src="" alt="Flag" style="max-width:80vw;max-height:70vh;border-radius:0.5rem;box-shadow:0 2px 16px #0003;border:1px solid #ccc;background:#fff;" />
+        <button id="flag-modal-close" style="position:absolute;top:0.5rem;right:0.5rem;font-size:2rem;background:none;border:none;color:#fff;cursor:pointer;z-index:2;">&times;</button>
+      </div>
+    </div>
+    <footer>
+      <p>Data from <a href="https://en.wikipedia.org/wiki/Emoji_flags" target="_blank">Wikipedia</a> &amp; Unicode</p>
+      <p>Created by <a href="https://github.com/pgordineer" target="_blank">@pgordineer</a></p>
+    </footer>
+  </div>
+  <script src="script.js"></script>
+  <script>
+  // Difficulty slider label update
+  document.addEventListener('DOMContentLoaded', function() {
+    var slider = document.getElementById('difficulty-slider');
+    var label = document.getElementById('difficulty-label');
+    if (slider && label) {
+      var levels = ['Easy', 'Medium', 'Hard'];
+      function updateLabel() {
+        label.textContent = levels[slider.value - 1];
+      }
+      slider.addEventListener('input', updateLabel);
+      updateLabel();
+    }
+  });
+  // Sync top and bottom scrollbars for study table
+  (function() {
+    function syncScroll(e1, e2) {
+      e1.scrollLeft = e2.scrollLeft;
+    }
+    window.addEventListener('DOMContentLoaded', function() {
+      var table = document.getElementById('study-table');
+      var topDiv = document.getElementById('study-scrollbar-top');
+      var bottomDiv = document.getElementById('study-scrollbar-bottom');
+      if (table && topDiv && bottomDiv) {
+        // Clone table for top scrollbar only
+        var topTable = table.cloneNode(false);
+        topTable.style.visibility = 'hidden';
+        topTable.style.pointerEvents = 'none';
+        topTable.style.height = '1px';
+        topTable.style.margin = '0';
+        topTable.style.padding = '0';
+        topTable.style.border = 'none';
+        topDiv.appendChild(topTable);
+        // Sync scroll
+        topDiv.onscroll = function() { syncScroll(bottomDiv, topDiv); };
+        bottomDiv.onscroll = function() { syncScroll(topDiv, bottomDiv); };
+      }
+    });
+  })();
+  (function() {
+    window.addEventListener('DOMContentLoaded', function() {
+      var table = document.getElementById('study-table');
+      var topDiv = document.getElementById('study-scrollbar-top');
+      var bottomDiv = document.getElementById('study-scrollbar-bottom');
+      if (table && topDiv && bottomDiv) {
+        // Set the width of the top dummy div to match the table
+        function syncWidths() {
+          var dummy = topDiv.querySelector('div');
+          if (dummy) dummy.style.width = table.offsetWidth + 'px';
+        }
+        syncWidths();
+        window.addEventListener('resize', syncWidths);
+        // Sync scroll positions
+        topDiv.onscroll = function() { bottomDiv.scrollLeft = topDiv.scrollLeft; };
+        bottomDiv.onscroll = function() { topDiv.scrollLeft = bottomDiv.scrollLeft; };
+      }
+    });
+  })();
+  </script>
+</body>
+</html>
