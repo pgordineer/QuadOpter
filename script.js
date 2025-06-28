@@ -36,6 +36,26 @@ function startGameRound(modeKey) {
   // Store current mode for next/undo/etc if needed
   startGameRound.currentMode = modeKey;
 }
+
+// --- DOMContentLoaded: Register mode buttons and fix calendar popout ---
+document.addEventListener('DOMContentLoaded', function() {
+  // Register all mode buttons dynamically
+  Object.entries(modes).forEach(([modeKey, mode]) => {
+    const btn = document.getElementById(mode.buttonId);
+    if (btn) {
+      btn.addEventListener('click', () => startGameRound(modeKey));
+    }
+  });
+
+  // Fix calendar popout max width and centering for mobile
+  const dailyCalendarDiv = document.getElementById('daily-calendar');
+  if (dailyCalendarDiv) {
+    dailyCalendarDiv.style.maxWidth = '95vw';
+    dailyCalendarDiv.style.left = '50%';
+    dailyCalendarDiv.style.transform = 'translateX(-50%)';
+    dailyCalendarDiv.style.right = 'unset';
+  }
+});
 // --- QuadOpter: Single Digits Mode ---
 
 // Difficulty levels: 1 = Easy, 2 = Medium, 3 = Hard
