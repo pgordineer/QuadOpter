@@ -789,9 +789,11 @@ footer {
   margin-top: 0.2em;
   letter-spacing: 0.01em;
 }
+#main-menu button,
 .main-menu-btn, .sdg-action-btn {
   width: 100%;
-  min-width: 110px;
+  max-width: 320px;
+  min-width: 90px;
   font-size: 1.1em;
   padding: 0.7em 1.2em;
   margin: 0.2em 0.3em 1em 0.3em;
@@ -805,6 +807,17 @@ footer {
   box-shadow: 0 1px 4px #1976d211;
   outline: none;
   display: block;
+  box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+  .main-menu-btn, .sdg-action-btn {
+    max-width: 98vw;
+    min-width: 0;
+    font-size: 1em;
+    padding: 0.7em 0.2em;
+    margin: 0.2em 0.1em 0.7em 0.1em;
+  }
 }
 #sdg-undo.sdg-action-btn {
   background: #f0f4fa;
