@@ -1,6 +1,4 @@
 // --- Modular Game Modes Config ---
-window.sdgState = {};
-
 window.modes = {
   singleDigits: {
     label: 'Single Digits',
@@ -275,18 +273,18 @@ function startGameRound(numbers) {
 }
 
 function endGameRound() {
-  window.singleDigitsGameDiv.style.display = 'none';
-  window.mainMenuDiv.style.display = '';
+  singleDigitsGameDiv.style.display = 'none';
+  mainMenuDiv.style.display = '';
 }
 
 
 function showNextGameRound() {
   // Use the last played mode
-  const modeKey = window.startGameRound.currentMode || 'singleDigits';
-  window.startGameRound(modeKey);
+  const modeKey = startGameRound.currentMode || 'singleDigits';
+  startGameRound(modeKey);
 }
 
-window.sdgSubmitBtn.onclick = function() {
+sdgSubmitBtn.onclick = function() {
   // Evaluate the built expression
   let expr = sdgState.expr.slice();
   let evalExpr = expr.map(x => x === '×' ? '*' : x === '÷' ? '/' : x).join(' ');
@@ -310,7 +308,7 @@ window.sdgSubmitBtn.onclick = function() {
   }
 };
 
-window.sdgGiveUpBtn.onclick = function() {
+sdgGiveUpBtn.onclick = function() {
   sdgFeedbackDiv.innerHTML = `<span style='color:#c00;'>Solution: <b>${currentSolution || 'No solution found'}</b></span>`;
   sdgNextBtn.style.display = '';
   sdgSubmitBtn.style.display = 'none';
@@ -319,9 +317,9 @@ window.sdgGiveUpBtn.onclick = function() {
   renderSDG();
 };
 
-window.sdgNextBtn.onclick = window.showNextGameRound;
+sdgNextBtn.onclick = showNextGameRound;
 
-window.sdgBackBtn.onclick = window.endGameRound;
+sdgBackBtn.onclick = endGameRound;
 
 // Register all mode buttons dynamically
 Object.entries(modes).forEach(([modeKey, mode]) => {
