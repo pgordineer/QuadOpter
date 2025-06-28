@@ -1,5 +1,5 @@
 // --- Modular Game Modes Config ---
-const modes = {
+window.modes = {
   singleDigits: {
     label: 'Single Digits',
     generator: generateSolvableSingleDigits,
@@ -19,20 +19,20 @@ const modes = {
 };
 
 function startGameRound(modeKey) {
-  const mode = modes[modeKey];
+  const mode = window.modes[modeKey];
   if (!mode) return;
-  let {numbers, solution} = mode.generator(currentDifficulty);
-  currentNumbers = numbers;
-  currentSolution = solution;
-  resetSDGState(numbers);
-  renderSDG();
-  sdgFeedbackDiv.textContent = '';
-  singleDigitsGameDiv.style.display = '';
-  mainMenuDiv.style.display = 'none';
-  sdgNextBtn.style.display = 'none';
-  sdgSubmitBtn.style.display = '';
-  sdgGiveUpBtn.style.display = '';
-  sdgGiveUpBtn.disabled = false;
+  let {numbers, solution} = mode.generator(window.currentDifficulty);
+  window.currentNumbers = numbers;
+  window.currentSolution = solution;
+  window.resetSDGState(numbers);
+  window.renderSDG();
+  window.sdgFeedbackDiv.textContent = '';
+  window.singleDigitsGameDiv.style.display = '';
+  window.mainMenuDiv.style.display = 'none';
+  window.sdgNextBtn.style.display = 'none';
+  window.sdgSubmitBtn.style.display = '';
+  window.sdgGiveUpBtn.style.display = '';
+  window.sdgGiveUpBtn.disabled = false;
   // Store current mode for next/undo/etc if needed
   startGameRound.currentMode = modeKey;
 }
@@ -197,17 +197,7 @@ function find24Solution(nums, allowedOps, target) {
 }
 
 // --- Single Digits UI Logic ---
-const singleDigitsGameDiv = document.getElementById('single-digits-game');
-const sdgNumbersDiv = document.getElementById('sdg-numbers');
-const sdgOpsDiv = document.getElementById('sdg-ops');
-const sdgExprDiv = document.getElementById('sdg-expression');
-const sdgSubmitBtn = document.getElementById('sdg-submit');
-const sdgFeedbackDiv = document.getElementById('sdg-feedback');
-const sdgBackBtn = document.getElementById('sdg-back');
-const sdgNextBtn = document.getElementById('sdg-next');
-const sdgGiveUpBtn = document.getElementById('sdg-giveup');
-const sdgUndoBtn = document.getElementById('sdg-undo');
-const mainMenuDiv = document.getElementById('main-menu');
+// DOM references are now set in DOMContentLoaded and available as window properties
 
 let sdgState = {
   numbers: [],
