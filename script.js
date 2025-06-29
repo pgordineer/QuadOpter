@@ -92,7 +92,7 @@ function generateSolvableOperationsMode(difficulty) {
   let ops = ['+', '-', '*', '/'];
   let opCount = {1: 1, 2: 2, 3: 3}[difficulty] || 2;
   let allowedOps = ops.slice(0, opCount);
-  let maxTries = 2000;
+  let maxTries = 10000;
   // Limit exp ops by difficulty
   let allExpOps = [
     { fn: x => x * x, str: a => `(${a})²`, check: x => Math.abs(x) < 100 },
@@ -263,7 +263,7 @@ function generateSolvableSingleDigits(difficulty) {
   let ops = ['+', '-', '*', '/'];
   let opCount = {1: 1, 2: 2, 3: 3}[difficulty] || 2;
   let allowedOps = ops.slice(0, opCount);
-  let maxTries = 1000;
+  let maxTries = 10000;
   for (let tries = 0; tries < maxTries; ++tries) {
     let target = 24;
     let nums = [randInt(1,9), randInt(1,9), randInt(1,9), randInt(1,9)];
@@ -769,7 +769,7 @@ function generateSolvableDoubleDigits(difficulty) {
   let ops = ['+', '-', '*', '/'];
   let opCount = {1: 1, 2: 2, 3: 3}[difficulty] || 2;
   let allowedOps = ops.slice(0, opCount);
-  let maxTries = 1000;
+  let maxTries = 10000;
   for (let tries = 0; tries < maxTries; ++tries) {
     let target = 24;
     let nums = [randInt(1,24), randInt(1,24), randInt(1,24), randInt(1,24)];
@@ -802,7 +802,7 @@ function generateSolvableIntegers(difficulty) {
   let ops = ['+', '-', '*', '/'];
   let opCount = {1: 1, 2: 2, 3: 3}[difficulty] || 2;
   let allowedOps = ops.slice(0, opCount);
-  let maxTries = 1000;
+  let maxTries = 10000;
   for (let tries = 0; tries < maxTries; ++tries) {
     let target = 24;
     let nums = [];
