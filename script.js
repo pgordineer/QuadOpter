@@ -491,6 +491,12 @@ function renderSDG() {
     sdgFeedbackDiv.textContent = '';
     sdgGiveUpBtn.disabled = roundFinished;
   }
+
+  // --- Fix: Remove focus from any number button after re-render to prevent mobile highlight bug ---
+  // If the active element is a .sdg-btn, blur it
+  if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('sdg-btn')) {
+    document.activeElement.blur();
+  }
 }
 
 function startSingleDigitsGame(numbers) {
