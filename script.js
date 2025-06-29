@@ -366,7 +366,8 @@ function renderSDG() {
       // If no number is selected and no pendingOp, select this as first operand
       if (sdgState.selected.length === 0 && !sdgState.pendingOp) {
         sdgState.selected = [idx];
-        renderSDG();
+        // Defer render to next tick to ensure DOM updates before next tap
+        setTimeout(renderSDG, 0);
       }
       // If one number is selected and a pendingOp, and this is a different number, perform the operation
       else if (sdgState.selected.length === 1 && sdgState.pendingOp && sdgState.selected[0] !== idx) {
@@ -403,13 +404,13 @@ function renderSDG() {
         } else if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
           sdgState.finished = true;
         }
-        renderSDG();
+        setTimeout(renderSDG, 0);
       }
       // If a number is already selected but no pendingOp, allow changing selection
       else if (sdgState.selected.length === 1 && !sdgState.pendingOp) {
         if (sdgState.selected[0] !== idx) {
           sdgState.selected = [idx];
-          renderSDG();
+          setTimeout(renderSDG, 0);
         }
       }
     };
