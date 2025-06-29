@@ -322,6 +322,8 @@ function renderSDG() {
       btn.classList.add('selected');
     }
     btn.onclick = function() {
+      // Remove focus/active state to prevent mobile hover/focus bug
+      this.blur();
       if (roundFinished) return;
       // If no number is selected and no pendingOp, select this as first operand
       if (sdgState.selected.length === 0 && !sdgState.pendingOp) {
