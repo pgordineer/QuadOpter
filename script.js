@@ -149,12 +149,69 @@ function renderSDG() {
     btn.style.margin = '0.2em';
     btn.disabled = roundFinished;
     // Highlight if selected
-    if (sdgState.selected.includes(idx)) btn.style.background = '#e3f2fd';
+    if (sdgState.selected.length === 1 && sdgState.selected[0] === idx) btn.style.background = '#e3f2fd';
     btn.onclick = function() {
       if (roundFinished) return;
-      if (sdgState.selected.length < 2 && !sdgState.selected.includes(idx)) {
-        sdgState.selected.push(idx);
+      // If no number is selected and no pendingOp, select this as first operand
+      if (sdgState.selected.length === 0 && !sdgState.pendingOp) {
+        sdgState.selected = [idx];
         renderSDG();
+      }
+      // If one number is selected and a pendingOp, and this is a different number, perform the operation
+      else if (sdgState.selected.length === 1 && sdgState.pendingOp && sdgState.selected[0] !== idx) {
+        const i = sdgState.selected[0];
+        const j = idx;
+        const a = sdgState.numbers[i];
+        const b = sdgState.numbers[j];
+        const op = sdgState.pendingOp;
+        let result;
+        if (op === '+') result = a + b;
+        else if (op === '-') result = a - b;
+        else if (op === '×') result = a * b;
+        else if (op === '÷') {
+          if (b === 0) {
+            sdgFeedbackDiv.textContent = '❌ Division by zero!';
+            return;
+          }
+          result = a / b;
+        }
+        // Mark used
+        sdgState.used[i] = true;
+        sdgState.used[j] = true;
+        // Add result to numbers at the start (left-most)
+        sdgState.numbers.unshift(result);
+        sdgState.used.unshift(false);
+        // Record step
+        sdgState.steps.push(`${a} ${op} ${b} = ${result}`);
+        // Reset selection and op
+        sdgState.selected = [];
+        sdgState.pendingOp = null;
+        // Check for win
+        if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1 && Math.abs(result - 24) < 1e-6) {
+          sdgState.finished = true;
+          sdgFeedbackDiv.textContent = '🎉 Correct!';
+          sdgFeedbackDiv.style.color = '#1976d2';
+          sdgNextBtn.style.display = '';
+          sdgSubmitBtn.style.display = 'none';
+          sdgGiveUpBtn.style.display = 'none';
+        } else if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
+          sdgState.finished = true;
+          sdgFeedbackDiv.textContent = '❌ Not 24!';
+          sdgFeedbackDiv.style.color = '#c00';
+          sdgNextBtn.style.display = '';
+          sdgSubmitBtn.style.display = 'none';
+          sdgGiveUpBtn.style.display = 'none';
+        } else {
+          sdgFeedbackDiv.textContent = '';
+        }
+        renderSDG();
+      }
+      // If a number is already selected but no pendingOp, allow changing selection
+      else if (sdgState.selected.length === 1 && !sdgState.pendingOp) {
+        if (sdgState.selected[0] !== idx) {
+          sdgState.selected = [idx];
+          renderSDG();
+        }
       }
     };
     sdgNumbersDiv.appendChild(btn);
@@ -175,57 +232,15 @@ function renderSDG() {
     btn.style.minWidth = '2.5em';
     btn.style.maxWidth = '5em';
     btn.style.margin = '0.2em';
-    // Enable only if two numbers are selected and no pending op
-    btn.disabled = roundFinished || sdgState.selected.length !== 2;
+    // Enable only if one number is selected, no pending op, and not finished
+    btn.disabled = roundFinished || sdgState.selected.length !== 1 || sdgState.pendingOp;
     btn.onclick = function() {
-      if (roundFinished || sdgState.selected.length !== 2) return;
+      if (roundFinished || sdgState.selected.length !== 1 || sdgState.pendingOp) return;
       sdgState.pendingOp = op;
-      // Perform the operation
-      const [i, j] = sdgState.selected;
-      const a = sdgState.numbers[i];
-      const b = sdgState.numbers[j];
-      let result;
-      if (op === '+') result = a + b;
-      else if (op === '-') result = a - b;
-      else if (op === '×') result = a * b;
-      else if (op === '÷') {
-        if (b === 0) {
-          sdgFeedbackDiv.textContent = '❌ Division by zero!';
-          return;
-        }
-        result = a / b;
-      }
-      // Mark used
-      sdgState.used[i] = true;
-      sdgState.used[j] = true;
-      // Add result to numbers
-      sdgState.numbers.push(result);
-      sdgState.used.push(false);
-      // Record step
-      sdgState.steps.push(`${a} ${op} ${b} = ${result}`);
-      // Reset selection and op
-      sdgState.selected = [];
-      sdgState.pendingOp = null;
-      // Check for win
-      if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1 && Math.abs(result - 24) < 1e-6) {
-        sdgState.finished = true;
-        sdgFeedbackDiv.textContent = '🎉 Correct!';
-        sdgFeedbackDiv.style.color = '#1976d2';
-        sdgNextBtn.style.display = '';
-        sdgSubmitBtn.style.display = 'none';
-        sdgGiveUpBtn.style.display = 'none';
-      } else if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
-        sdgState.finished = true;
-        sdgFeedbackDiv.textContent = '❌ Not 24!';
-        sdgFeedbackDiv.style.color = '#c00';
-        sdgNextBtn.style.display = '';
-        sdgSubmitBtn.style.display = 'none';
-        sdgGiveUpBtn.style.display = 'none';
-      } else {
-        sdgFeedbackDiv.textContent = '';
-      }
       renderSDG();
     };
+    // Highlight if pendingOp
+    if (sdgState.pendingOp === op) btn.style.background = '#ffe082';
     opsRow.appendChild(btn);
   });
   sdgOpsDiv.appendChild(opsRow);
@@ -334,24 +349,44 @@ sdgGiveUpBtn.onclick = function() {
 
 // Undo button logic (restore correct state)
 sdgUndoBtn.onclick = function() {
-  if (sdgState.expr.length === 0 || sdgState.finished) return;
-  // Remove last entry
-  const last = sdgState.expr.pop();
-  // If it was a number, unmark it as used and decrement step
-  if (typeof last === 'number') {
-    // Find the first used index matching this number (from left)
-    for (let i = 0; i < sdgState.numbers.length; ++i) {
-      if (sdgState.numbers[i] === last && sdgState.used[i]) {
+  if (sdgState.steps.length === 0 || sdgState.finished) return;
+  // Remove last step
+  const lastStep = sdgState.steps.pop();
+  // Parse last step: e.g. "9 + 1 = 10"
+  const match = lastStep.match(/(-?\d+(?:\.\d+)?) ([+\-×÷]) (-?\d+(?:\.\d+)?) = (-?\d+(?:\.\d+)?)/);
+  if (!match) return;
+  const a = Number(match[1]);
+  const op = match[2];
+  const b = Number(match[3]);
+  const result = Number(match[4]);
+  // Remove last number (the result)
+  let resultIdx = sdgState.numbers.lastIndexOf(result);
+  if (resultIdx === -1) return;
+  sdgState.numbers.splice(resultIdx, 1);
+  sdgState.used.splice(resultIdx, 1);
+  // Find the two most recent used numbers matching a and b, and unmark them
+  let foundA = false, foundB = false;
+  for (let i = sdgState.numbers.length - 1; i >= 0; --i) {
+    if (sdgState.used[i]) {
+      if (!foundB && sdgState.numbers[i] === b) {
         sdgState.used[i] = false;
-        break;
+        foundB = true;
+      } else if (!foundA && sdgState.numbers[i] === a) {
+        sdgState.used[i] = false;
+        foundA = true;
       }
+      if (foundA && foundB) break;
     }
-    sdgState.step--;
-  } else if (['+', '-', '×', '÷'].includes(last)) {
-    // If it was an op, just decrement step
-    sdgState.step--;
   }
-  // Parentheses do not affect step or used
+  // Reset selection and op
+  sdgState.selected = [];
+  sdgState.pendingOp = null;
+  // Unfinish round if it was finished
+  sdgState.finished = false;
+  sdgFeedbackDiv.textContent = '';
+  sdgNextBtn.style.display = 'none';
+  sdgSubmitBtn.style.display = 'none';
+  sdgGiveUpBtn.style.display = '';
   renderSDG();
 };
 
