@@ -6,6 +6,7 @@ function showOperationsMode() {
   currentNumbers = numbers;
   currentSolution = solution;
   startSingleDigitsGame(numbers);
+}
 // --- Operations Mode Generator ---
 // Try all possible ways to use one exponential op at any step, then solve for 24
 function generateSolvableOperationsMode(difficulty) {
@@ -133,7 +134,6 @@ function evalBinary(a, op, b) {
   if (op === '*') return a * b;
   if (op === '/') return b !== 0 ? a / b : NaN;
   return NaN;
-}
 }
 
 function showVariablesMode() {
@@ -492,11 +492,10 @@ function renderSDG() {
     sdgGiveUpBtn.disabled = roundFinished;
   }
 
-  // --- Fix: Remove focus from any number button after re-render to prevent mobile highlight bug ---
-  // If the active element is a .sdg-btn, blur it
-  if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('sdg-btn')) {
-    document.activeElement.blur();
-  }
+  // --- Fix: Remove focus from all number buttons after re-render to prevent mobile highlight bug ---
+  // Loop through all .sdg-btn buttons and blur them
+  const allNumBtns = sdgNumbersDiv.querySelectorAll('.sdg-btn');
+  allNumBtns.forEach(btn => btn.blur());
 }
 
 function startSingleDigitsGame(numbers) {
