@@ -3,6 +3,16 @@
   background: inherit !important;
   color: inherit !important;
 }
+.sdg-op-btn.no-hover:hover,
+.sdg-op-btn.no-hover:active,
+.sdg-op-btn.no-hover:focus {
+  background: inherit !important;
+  color: inherit !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: inherit !important;
+  cursor: pointer !important;
+}
 /* Suppress mobile tap/active/focus highlight for number buttons */
 .sdg-btn {
   -webkit-tap-highlight-color: transparent;

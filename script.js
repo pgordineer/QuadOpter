@@ -360,8 +360,6 @@ function renderSDG() {
       btn.classList.add('selected');
     }
     btn.onclick = function() {
-      // Remove focus/active state to prevent mobile hover/focus bug
-      this.blur();
       if (roundFinished) return;
       // If no number is selected and no pendingOp, select this as first operand
       if (sdgState.selected.length === 0 && !sdgState.pendingOp) {
@@ -414,11 +412,6 @@ function renderSDG() {
         }
       }
     };
-    // Add touchstart handler to prevent sticky hover on mobile
-    btn.addEventListener('touchstart', function(e) {
-      btn.classList.add('no-hover');
-      setTimeout(() => btn.classList.remove('no-hover'), 400);
-    }, {passive:true});
     sdgNumbersDiv.appendChild(btn);
   });
   // Render ops (no parens)
