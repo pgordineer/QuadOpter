@@ -15,12 +15,21 @@ function generateSolvableOperationsMode(difficulty) {
   let opCount = {1: 1, 2: 2, 3: 3}[difficulty] || 2;
   let allowedOps = ops.slice(0, opCount);
   let maxTries = 2000;
-  let expOps = [
+  // Limit exp ops by difficulty
+  let allExpOps = [
     { fn: x => x * x, str: a => `(${a})²`, check: x => Math.abs(x) < 100 },
     { fn: x => x * x * x, str: a => `(${a})³`, check: x => Math.abs(x) < 22 },
     { fn: x => x >= 0 ? Math.sqrt(x) : NaN, str: a => `√(${a})`, check: x => x >= 0 },
     { fn: x => Math.cbrt(x), str: a => `∛(${a})`, check: x => true }
   ];
+  let expOps;
+  if (difficulty === 1) {
+    expOps = allExpOps.slice(0, 1); // Easy: only square
+  } else if (difficulty === 2) {
+    expOps = allExpOps.slice(0, 2); // Medium: square, cube
+  } else {
+    expOps = allExpOps; // Hard: all exp ops
+  }
   // Try random sets, for each try, pick a single random exp op to use
   for (let tries = 0; tries < maxTries; ++tries) {
     let nums = [randInt(1,9), randInt(1,9), randInt(1,9), randInt(1,9)];
