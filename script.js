@@ -1,3 +1,25 @@
+// --- Prevent double-tap zoom on mobile browsers ---
+// This disables double-tap zoom for all buttons and the main game area
+// (Best effort: some browsers may require viewport meta tag changes in HTML)
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function(event) {
+  const now = Date.now();
+  if (now - lastTouchEnd <= 300) {
+    event.preventDefault();
+  }
+  lastTouchEnd = now;
+}, { passive: false });
+
+// Also set touch-action CSS for all buttons to prevent double-tap zoom
+window.addEventListener('DOMContentLoaded', function() {
+  const style = document.createElement('style');
+  style.textContent = `
+    button, .sdg-btn, .sdg-op-btn {
+      touch-action: manipulation !important;
+    }
+  `;
+  document.head.appendChild(style);
+});
 // --- QuadOpter: Single Digits Mode ---
 // --- QuadOpter: Operations Mode & Variables Mode (stubs) ---
 function showOperationsMode() {
