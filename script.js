@@ -21,16 +21,12 @@ function generateSolvableOperationsMode(difficulty) {
     { fn: x => x >= 0 ? Math.sqrt(x) : NaN, str: a => `√(${a})`, check: x => x >= 0 },
     { fn: x => Math.cbrt(x), str: a => `∛(${a})`, check: x => true }
   ];
-  // Shuffle expOps to randomize which special op is tried first
-  for (let i = expOps.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [expOps[i], expOps[j]] = [expOps[j], expOps[i]];
-  }
-  // Try random sets, then for each, try all ways to apply one exp op at any step
+  // Try random sets, for each try, pick a single random exp op to use
   for (let tries = 0; tries < maxTries; ++tries) {
     let nums = [randInt(1,9), randInt(1,9), randInt(1,9), randInt(1,9)];
-    // Try all ways to insert one exp op at any step in the solution
-    let solution = find24WithOneExp(nums, allowedOps, expOps, 24);
+    // Pick a single random exp op for this attempt
+    const expOp = expOps[Math.floor(Math.random() * expOps.length)];
+    let solution = find24WithOneExp(nums, allowedOps, [expOp], 24);
     if (solution) {
       return { numbers: nums, solution };
     }
@@ -508,33 +504,6 @@ function renderSDG() {
     sdgGiveUpBtn.disabled = roundFinished;
   }
 
-  // --- Aggressive fix: Remove .selected, blur, and toggle disabled to clear mobile highlight ---
-  const allNumBtns = sdgNumbersDiv.querySelectorAll('.sdg-btn');
-  allNumBtns.forEach(btn => {
-    btn.classList.remove('selected');
-    btn.blur();
-    // Toggle disabled to force browser to clear focus/active state
-    const wasDisabled = btn.disabled;
-    btn.disabled = true;
-    btn.disabled = wasDisabled;
-  });
-  // Now re-add .selected to the correct button if needed
-  if (sdgState.selected.length === 1) {
-    const idx = sdgState.selected[0];
-    // Find the button for this index (skip used)
-    let btnIdx = -1;
-    for (let i = 0, seen = 0; i < sdgState.numbers.length; ++i) {
-      if (sdgState.used[i]) continue;
-      if (i === idx) {
-        btnIdx = seen;
-        break;
-      }
-      seen++;
-    }
-    if (btnIdx !== -1 && allNumBtns[btnIdx]) {
-      allNumBtns[btnIdx].classList.add('selected');
-    }
-  }
 }
 
 function startSingleDigitsGame(numbers) {
