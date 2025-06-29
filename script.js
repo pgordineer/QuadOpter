@@ -31,7 +31,7 @@ function generateSolvableOperations(difficulty) {
     if (found) {
       return {numbers: nums, solution: found};
     }
-  
+  }
   // Fallback: just return random numbers
   return {numbers: [randInt(1,9), randInt(1,9), randInt(1,9), randInt(1,9)], solution: null};
 }
@@ -47,7 +47,7 @@ function find24WithOneExp(nums, allowedOps, expOps, target) {
         for (let p of permute(rest)) yield [arr[i]].concat(p);
       }
     }
-
+  }
   function* opCombos(ops, n) {
     if (n === 0) yield [];
     else {
@@ -55,11 +55,18 @@ function find24WithOneExp(nums, allowedOps, expOps, target) {
         for (let rest of opCombos(ops, n-1)) yield [op].concat(rest);
       }
     }
-
+  }
   // Try all permutations and op combos
   for (let perm of permute(nums)) {
     for (let ops of opCombos(allowedOps, 3)) {
+      // Try all possible exp op placements (on any intermediate result or input)
+      // For each of the 5 possible intermediate values (4 inputs, 1 after first op, 1 after second, 1 after third)
+      // We'll try applying the exp op at each possible step
+      // We'll use a tree of operations, so try all parenthesizations
+      // For each parenthesization, try all exp ops at all possible nodes
+      // We'll use a simple approach: try all 5 parenthesizations, and for each, try all exp ops at all possible nodes
       let exprs = [
+        // ((a op0 b) op1 c) op2 d
         function(a,b,c,d,op0,op1,op2) {
           return [
             { node: 'a', expr: 'A' },
@@ -71,6 +78,7 @@ function find24WithOneExp(nums, allowedOps, expOps, target) {
             { node: 'abcd', expr: `(((A${op0}B)${op1}C)${op2}D)` }
           ];
         },
+        // (a op0 (b op1 c)) op2 d
         function(a,b,c,d,op0,op1,op2) {
           return [
             { node: 'a', expr: 'A' },
@@ -82,6 +90,7 @@ function find24WithOneExp(nums, allowedOps, expOps, target) {
             { node: 'abcd', expr: `((A${op0}(B${op1}C))${op2}D)` }
           ];
         },
+        // (a op0 b) op1 (c op2 d)
         function(a,b,c,d,op0,op1,op2) {
           return [
             { node: 'a', expr: 'A' },
@@ -93,6 +102,7 @@ function find24WithOneExp(nums, allowedOps, expOps, target) {
             { node: 'abcd', expr: `((A${op0}B)${op1}(C${op2}D))` }
           ];
         },
+        // a op0 ((b op1 c) op2 d)
         function(a,b,c,d,op0,op1,op2) {
           return [
             { node: 'a', expr: 'A' },
@@ -104,6 +114,7 @@ function find24WithOneExp(nums, allowedOps, expOps, target) {
             { node: 'abcd', expr: `(A${op0}((B${op1}C)${op2}D))` }
           ];
         },
+        // a op0 (b op1 (c op2 d))
         function(a,b,c,d,op0,op1,op2) {
           return [
             { node: 'a', expr: 'A' },
@@ -118,20 +129,25 @@ function find24WithOneExp(nums, allowedOps, expOps, target) {
       ];
       for (let exprFn of exprs) {
         let nodes = exprFn(perm[0], perm[1], perm[2], perm[3], ops[0], ops[1], ops[2]);
+        // Try all exp ops at all nodes except the root (must use exactly one exp op)
         for (let exp of expOps) {
           for (let i = 0; i < nodes.length - 1; ++i) {
+            // Build expr with exp op at node i
             let replaced = nodes.map((n, idx) => {
               if (idx === i) {
+                // Replace A/B/C/D with perm values
                 let base = n.expr.replace('A', perm[0]).replace('B', perm[1]).replace('C', perm[2]).replace('D', perm[3]);
                 return exp.js(base);
               } else {
                 return n.expr.replace('A', perm[0]).replace('B', perm[1]).replace('C', perm[2]).replace('D', perm[3]);
               }
             });
+            // Now, build up the final expr using the last node (root)
             let finalExpr = replaced[replaced.length - 1];
             try {
               let val = eval(finalExpr);
               if (Math.abs(val - target) < 1e-6) {
+                // For display, show which exp op and where
                 let display = finalExpr.replace(/\*\*/g, '^').replace(/Math\.sqrt/g, '√').replace(/Math\.cbrt/g, '∛');
                 return display;
               }
@@ -140,9 +156,8 @@ function find24WithOneExp(nums, allowedOps, expOps, target) {
         }
       }
     }
-
+  }
   return null;
-}
 function showVariablesMode() {
   currentMode = 'variables';
   // TODO: Implement Variables mode logic
@@ -705,7 +720,7 @@ function generateSolvableIntegers(difficulty) {
     let n = randInt(-24, 24);
     if (n !== 0) fallback.push(n);
   }
-  return {numbers: fallback, solution: null};
+    return {numbers: fallback, solution: null};
 }
 function showIntegersMode() {
   currentMode = 'integers';
@@ -821,7 +836,7 @@ if (dailyModeBtn) {
     // Only trigger if not clicking the date pill
     if (e.target.closest('#daily-date-pill')) return;
     // TODO: launch daily mode game logic here
-  }
+  };
 }
 if (dailyDatePill) {
   dailyDatePill.onclick = function(e) {
@@ -854,4 +869,3 @@ if (dailyDatePill) {
       cal.style.zIndex = 1001;
     }, 0);
   };
-
