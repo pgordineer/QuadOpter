@@ -31,7 +31,7 @@ function generateSolvableOperations(difficulty) {
     if (found) {
       return {numbers: nums, solution: found};
     }
-  
+  }
   // Fallback: just return random numbers
   return {numbers: [randInt(1,9), randInt(1,9), randInt(1,9), randInt(1,9)], solution: null};
 }
