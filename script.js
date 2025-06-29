@@ -47,6 +47,7 @@ function find24WithOneExp(nums, allowedOps, expOps, target) {
         for (let p of permute(rest)) yield [arr[i]].concat(p);
       }
     }
+  }
 
   function* opCombos(ops, n) {
     if (n === 0) yield [];
@@ -55,6 +56,7 @@ function find24WithOneExp(nums, allowedOps, expOps, target) {
         for (let rest of opCombos(ops, n-1)) yield [op].concat(rest);
       }
     }
+  }
 
   // Try all permutations and op combos
   for (let perm of permute(nums)) {
@@ -140,6 +142,7 @@ function find24WithOneExp(nums, allowedOps, expOps, target) {
         }
       }
     }
+  }
 
   return null;
 }
@@ -154,6 +157,7 @@ let currentDifficulty = 2; // Default to Medium
 let currentNumbers = [];
 let currentSolution = null;
 let currentMode = 'single'; // 'single', 'double', 'integers'
+
 
 // Listen for difficulty slider changes
 const difficultySlider = document.getElementById('difficulty-slider');
