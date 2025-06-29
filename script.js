@@ -302,6 +302,9 @@ function renderSDG() {
   const roundFinished = sdgState.finished;
   // Render numbers (stepwise merge)
   sdgNumbersDiv.innerHTML = '';
+  // Remove .selected from all number buttons before rendering (defensive, in case of DOM reuse)
+  // (Not strictly needed with full re-render, but safe for mobile browsers)
+  // Actually, since we clear innerHTML, we just need to ensure only the selected gets the class
   sdgState.numbers.forEach((num, idx) => {
     if (sdgState.used[idx]) return;
     const btn = document.createElement('button');
@@ -312,6 +315,8 @@ function renderSDG() {
     btn.style.textAlign = 'center';
     btn.style.margin = '0.2em';
     btn.disabled = roundFinished;
+    // Always remove .selected (defensive, in case of DOM reuse)
+    btn.classList.remove('selected');
     // Highlight if selected: add .selected class
     if (sdgState.selected.length === 1 && sdgState.selected[0] === idx) {
       btn.classList.add('selected');
