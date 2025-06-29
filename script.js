@@ -1,9 +1,22 @@
 // --- QuadOpter: Single Digits Mode ---
+// --- QuadOpter: Operations Mode & Variables Mode (stubs) ---
+function showOperationsMode() {
+  currentMode = 'operations';
+  // TODO: Implement Operations mode logic
+  alert('Operations mode coming soon!');
+}
+
+function showVariablesMode() {
+  currentMode = 'variables';
+  // TODO: Implement Variables mode logic
+  alert('Variables mode coming soon!');
+}
 
 // Difficulty levels: 1 = Easy, 2 = Medium, 3 = Hard
 let currentDifficulty = 2; // Default to Medium
 let currentNumbers = [];
 let currentSolution = null;
+let currentMode = 'single'; // 'single', 'double', 'integers'
 
 // Listen for difficulty slider changes
 const difficultySlider = document.getElementById('difficulty-slider');
@@ -251,12 +264,48 @@ function endSingleDigitsGame() {
   mainMenuDiv.style.display = '';
 }
 
-function showNextSingleDigits() {
+function showSingleDigitsMode() {
+  currentMode = 'single';
   let {numbers, solution} = generateSolvableSingleDigits(currentDifficulty);
   currentNumbers = numbers;
   currentSolution = solution;
   startSingleDigitsGame(numbers);
 }
+
+function showDoubleDigitsMode() {
+  currentMode = 'double';
+  let {numbers, solution} = generateSolvableDoubleDigits(currentDifficulty);
+  currentNumbers = numbers;
+  currentSolution = solution;
+  startSingleDigitsGame(numbers);
+}
+
+function showIntegersMode() {
+  currentMode = 'integers';
+  let {numbers, solution} = generateSolvableIntegers(currentDifficulty);
+  currentNumbers = numbers;
+  currentSolution = solution;
+  startSingleDigitsGame(numbers);
+}
+
+function showNextPuzzle() {
+  let result;
+  if (currentMode === 'single') {
+    result = generateSolvableSingleDigits(currentDifficulty);
+  } else if (currentMode === 'double') {
+    result = generateSolvableDoubleDigits(currentDifficulty);
+  } else if (currentMode === 'integers') {
+    result = generateSolvableIntegers(currentDifficulty);
+  } else {
+    result = generateSolvableSingleDigits(currentDifficulty);
+  }
+  currentNumbers = result.numbers;
+  currentSolution = result.solution;
+  startSingleDigitsGame(result.numbers);
+}
+sdgNextBtn.onclick = function() {
+  showNextPuzzle();
+};
 
 sdgSubmitBtn.onclick = function() {
   // Evaluate the built expression, allowing parentheses
@@ -294,10 +343,6 @@ sdgGiveUpBtn.onclick = function() {
   renderSDG();
 };
 
-sdgNextBtn.onclick = function() {
-  showNextSingleDigits();
-};
-
 // Undo button logic (restore correct state)
 sdgUndoBtn.onclick = function() {
   if (sdgState.expr.length === 0 || sdgState.finished) return;
@@ -325,6 +370,7 @@ sdgBackBtn.onclick = endSingleDigitsGame;
 
 // Overwrite showSingleDigitsMode to launch the UI
 function showSingleDigitsMode() {
+  currentMode = 'single';
   let {numbers, solution} = generateSolvableSingleDigits(currentDifficulty);
   currentNumbers = numbers;
   currentSolution = solution;
@@ -334,6 +380,16 @@ function showSingleDigitsMode() {
 const singleDigitsBtn = document.getElementById('single-digit-mode-btn');
 if (singleDigitsBtn) {
   singleDigitsBtn.addEventListener('click', showSingleDigitsMode);
+}
+// Hook up the Operations mode button
+const operationsBtn = document.getElementById('operations-mode-btn');
+if (operationsBtn) {
+  operationsBtn.addEventListener('click', showOperationsMode);
+}
+// Hook up the Variables mode button
+const variablesBtn = document.getElementById('variables-mode-btn');
+if (variablesBtn) {
+  variablesBtn.addEventListener('click', showVariablesMode);
 }
 
 // --- QuadOpter: Double Digits Mode ---
@@ -356,6 +412,7 @@ function generateSolvableDoubleDigits(difficulty) {
 }
 
 function showDoubleDigitsMode() {
+  currentMode = 'double';
   let {numbers, solution} = generateSolvableDoubleDigits(currentDifficulty);
   currentNumbers = numbers;
   currentSolution = solution;
@@ -394,6 +451,7 @@ function generateSolvableIntegers(difficulty) {
 }
 
 function showIntegersMode() {
+  currentMode = 'integers';
   let {numbers, solution} = generateSolvableIntegers(currentDifficulty);
   currentNumbers = numbers;
   currentSolution = solution;
