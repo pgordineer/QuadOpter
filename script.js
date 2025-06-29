@@ -541,7 +541,9 @@ function showIntegersMode() {
 
 function showNextPuzzle() {
   let result;
-  if (currentMode === 'single') {
+  if (currentMode === 'operations') {
+    result = generateSolvableOperationsMode(currentDifficulty);
+  } else if (currentMode === 'single') {
     result = generateSolvableSingleDigits(currentDifficulty);
   } else if (currentMode === 'double') {
     result = generateSolvableDoubleDigits(currentDifficulty);
