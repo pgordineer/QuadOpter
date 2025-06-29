@@ -1,3 +1,14 @@
+/* Suppress mobile tap/active/focus highlight for number buttons */
+.sdg-btn {
+  -webkit-tap-highlight-color: transparent;
+  outline: none !important;
+  box-shadow: none !important;
+}
+.sdg-btn:focus, .sdg-btn:active {
+  outline: none !important;
+  box-shadow: none !important;
+  background: #fff !important;
+}
 .sdg-btn.selected {
   background: #1976d2 !important;
   color: #fff !important;
