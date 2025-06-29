@@ -1,60 +1,62 @@
 // --- Prevent double-tap zoom on mobile browsers ---
 // This disables double-tap zoom for all buttons and the main game area
 // (Best effort: some browsers may require viewport meta tag changes in HTML)
-// Utility: add both click and touchend listeners with deduplication and selected state update
-function addFastButtonListener(el, handler, isOperator) {
-  let lastTouch = 0;
-  function selectOpBtn(e) {
-    if (isOperator) {
-      // Remove selected from all operator buttons
+
+// Attach robust event listeners for operator and number buttons
+function attachButtonListeners() {
+  // Operator buttons: always mark selected and yellow instantly on pointerup/click
+  document.querySelectorAll('.sdg-op-btn').forEach(btn => {
+    // Remove previous listeners if any
+    btn.replaceWith(btn.cloneNode(true));
+  });
+  document.querySelectorAll('.sdg-op-btn').forEach(btn => {
+    function markSelected(e) {
       document.querySelectorAll('.sdg-op-btn').forEach(b => {
         b.classList.remove('selected');
         b.style.background = '';
         b.style.color = '';
         b.style.borderColor = '';
       });
-      el.classList.add('selected');
-      el.style.background = '#ffe082';
-      el.style.color = '#222';
-      el.style.borderColor = '#fbc02d';
+      btn.classList.add('selected');
+      btn.style.background = '#ffe082';
+      btn.style.color = '#222';
+      btn.style.borderColor = '#fbc02d';
     }
-  }
-  el.addEventListener('touchend', function(e) {
-    lastTouch = Date.now();
-    selectOpBtn(e);
-    handler.call(this, e);
-  }, {passive: false});
-  el.addEventListener('click', function(e) {
-    if (Date.now() - lastTouch < 500) return;
-    selectOpBtn(e);
-    handler.call(this, e);
+    // Use pointerup for best mobile/desktop reliability
+    btn.addEventListener('pointerup', function(e) {
+      markSelected(e);
+      if (typeof btn._originalHandler === 'function') btn._originalHandler.call(this, e);
+    });
+    btn.addEventListener('click', function(e) {
+      markSelected(e);
+      if (typeof btn._originalHandler === 'function') btn._originalHandler.call(this, e);
+    });
+    // Save original handler if set via onclick
+    if (btn.onclick) {
+      btn._originalHandler = btn.onclick;
+      btn.onclick = null;
+    }
   });
-}
-
-function patchButtonListeners() {
-  document.querySelectorAll('.sdg-btn, .sdg-op-btn').forEach(btn => {
-    const isOperator = btn.classList.contains('sdg-op-btn');
-    const old = btn._fastHandler;
-    if (old) {
-      btn.removeEventListener('click', old.click, true);
-      btn.removeEventListener('touchend', old.touchend, true);
+  // Number buttons: just use click and pointerup for instant response
+  document.querySelectorAll('.sdg-btn').forEach(btn => {
+    btn.replaceWith(btn.cloneNode(true));
+  });
+  document.querySelectorAll('.sdg-btn').forEach(btn => {
+    if (btn.onclick) {
+      const handler = btn.onclick;
+      btn.onclick = null;
+      btn.addEventListener('pointerup', function(e) { handler.call(this, e); });
+      btn.addEventListener('click', function(e) { handler.call(this, e); });
     }
-    const handler = btn.onclick || (()=>{});
-    btn.onclick = null;
-    addFastButtonListener(btn, handler, isOperator);
-    btn._fastHandler = {
-      click: handler,
-      touchend: handler
-    };
   });
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', patchButtonListeners);
+  document.addEventListener('DOMContentLoaded', attachButtonListeners);
 } else {
-  patchButtonListeners();
+  attachButtonListeners();
 }
-// If you dynamically create buttons elsewhere, call patchButtonListeners() after.
+// If you dynamically create buttons elsewhere, call attachButtonListeners() after.
 let lastTouchEnd = 0;
 document.addEventListener('touchend', function(event) {
   const now = Date.now();
