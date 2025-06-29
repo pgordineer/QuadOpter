@@ -206,6 +206,33 @@ function find24Solution(nums, allowedOps, target) {
   function uniqueOpCount(opsArr) {
     return new Set(opsArr).size;
   }
+  // Helper for stepwise solution
+  function stepwise(a, op1, b, op2, c, op3, d, parenType) {
+    let steps = [];
+    let r1, r2, r3;
+    if (parenType === 0) {
+      r1 = evalBinary(a, op1, b); steps.push(`(${a} ${op1} ${b}) = ${r1}`);
+      r2 = evalBinary(r1, op2, c); steps.push(`(${r1} ${op2} ${c}) = ${r2}`);
+      r3 = evalBinary(r2, op3, d); steps.push(`(${r2} ${op3} ${d}) = ${r3}`);
+    } else if (parenType === 1) {
+      r1 = evalBinary(b, op2, c); steps.push(`(${b} ${op2} ${c}) = ${r1}`);
+      r2 = evalBinary(a, op1, r1); steps.push(`(${a} ${op1} ${r1}) = ${r2}`);
+      r3 = evalBinary(r2, op3, d); steps.push(`(${r2} ${op3} ${d}) = ${r3}`);
+    } else if (parenType === 2) {
+      r1 = evalBinary(c, op3, d); steps.push(`(${c} ${op3} ${d}) = ${r1}`);
+      r2 = evalBinary(b, op2, r1); steps.push(`(${b} ${op2} ${r1}) = ${r2}`);
+      r3 = evalBinary(a, op1, r2); steps.push(`(${a} ${op1} ${r2}) = ${r3}`);
+    } else if (parenType === 3) {
+      r1 = evalBinary(b, op2, c); steps.push(`(${b} ${op2} ${c}) = ${r1}`);
+      r2 = evalBinary(c, op3, d); steps.push(`(${c} ${op3} ${d}) = ${r2}`);
+      r3 = evalBinary(a, op1, evalBinary(r1, op3, d)); // Not used, but for completeness
+    } else if (parenType === 4) {
+      r1 = evalBinary(a, op1, b); steps.push(`(${a} ${op1} ${b}) = ${r1}`);
+      r2 = evalBinary(c, op3, d); steps.push(`(${c} ${op3} ${d}) = ${r2}`);
+      r3 = evalBinary(r1, op2, r2); steps.push(`(${r1} ${op2} ${r2}) = ${r3}`);
+    }
+    return { result: r3, steps };
+  }
   for (let perm of permute(nums)) {
     for (let ops of opCombos(allowedOps, 3)) {
       // Enforce operation diversity for Medium/Hard
@@ -213,20 +240,13 @@ function find24Solution(nums, allowedOps, target) {
       if (allowedOps.length === 2) requireUniqueOps = 2; // Medium
       if (allowedOps.length === 3) requireUniqueOps = 3; // Hard
       if (requireUniqueOps > 0 && uniqueOpCount(ops) < requireUniqueOps) continue;
-      // Try all parenthesizations
-      let exprs = [
-        `(${perm[0]}${ops[0]}${perm[1]})${ops[1]}${perm[2]}${ops[2]}${perm[3]}`,
-        `(${perm[0]}${ops[0]}(${perm[1]}${ops[1]}${perm[2]}))${ops[2]}${perm[3]}`,
-        `${perm[0]}${ops[0]}((${perm[1]}${ops[1]}${perm[2]})${ops[2]}${perm[3]})`,
-        `${perm[0]}${ops[0]}(${perm[1]}${ops[1]}(${perm[2]}${ops[2]}${perm[3]}))`,
-        `(${perm[0]}${ops[0]}${perm[1]})${ops[1]}(${perm[2]}${ops[2]}${perm[3]})`
-      ];
-      for (let expr of exprs) {
-        try {
-          if (Math.abs(eval(expr) - target) < 1e-6) {
-            return expr;
-          }
-        } catch (e) {}
+      // Try all parenthesizations, return stepwise solution if found
+      let parenTypes = [0, 1, 2, 3, 4];
+      for (let pType of parenTypes) {
+        let { result, steps } = stepwise(perm[0], ops[0], perm[1], ops[1], perm[2], ops[2], perm[3], pType);
+        if (Math.abs(result - target) < 1e-6 && isFinite(result)) {
+          return steps.join('<br>');
+        }
       }
     }
   }
@@ -352,7 +372,7 @@ function renderSDG() {
   });
   // Render ops (no parens)
   sdgOpsDiv.innerHTML = '';
-  // Standard operations row
+  // --- Standard operations row: +, -, ×, ÷ ---
   const opsRow = document.createElement('div');
   opsRow.style.display = 'flex';
   opsRow.style.justifyContent = 'center';
@@ -380,74 +400,76 @@ function renderSDG() {
   });
   sdgOpsDiv.appendChild(opsRow);
 
-  // Exponential operations row (active in operations mode)
-  const expRow = document.createElement('div');
-  expRow.style.display = 'flex';
-  expRow.style.justifyContent = 'center';
-  expRow.style.gap = '0.5em';
-  expRow.style.width = '100%';
-  expRow.style.flexWrap = 'wrap';
-  // Button labels: x², x³, √x, ∛x
-  const expOps = [
-    { label: 'x<sup>2</sup>', title: 'Square (x²)', op: 'square' },
-    { label: 'x<sup>3</sup>', title: 'Cube (x³)', op: 'cube' },
-    { label: '√x', title: 'Square Root (√x)', op: 'sqrt' },
-    { label: '∛x', title: 'Cube Root (∛x)', op: 'cbrt' }
-  ];
-  expOps.forEach(exp => {
-    const btn = document.createElement('button');
-    btn.innerHTML = exp.label;
-    btn.title = exp.title;
-    btn.className = 'sdg-op-btn';
-    btn.style.flex = '1 1 0';
-    btn.style.minWidth = '2.5em';
-    btn.style.maxWidth = '5em';
-    btn.style.margin = '0.2em';
-    // Enable only in operations mode, if one number is selected, not finished, and exp not used
-    btn.disabled = roundFinished || currentMode !== 'operations' || sdgState.selected.length !== 1 || sdgState.expUsed;
-    btn.onclick = function() {
-      if (btn.disabled) return;
-      // Only allow if one number is selected and not used exp yet
-      const idx = sdgState.selected[0];
-      let a = sdgState.numbers[idx];
-      let result, stepStr;
-      if (exp.op === 'square') {
-        result = a * a;
-        stepStr = `${a}² = ${result}`;
-      } else if (exp.op === 'cube') {
-        result = a * a * a;
-        stepStr = `${a}³ = ${result}`;
-      } else if (exp.op === 'sqrt') {
-        if (a < 0) {
-          sdgFeedbackDiv.textContent = '❌ Cannot sqrt negative!';
-          return;
+  // --- Exponential operations row: x², x³, √x, ∛x (only in operations mode) ---
+  if (currentMode === 'operations') {
+    const expRow = document.createElement('div');
+    expRow.style.display = 'flex';
+    expRow.style.justifyContent = 'center';
+    expRow.style.gap = '0.5em';
+    expRow.style.width = '100%';
+    expRow.style.flexWrap = 'wrap';
+    // Button labels: x², x³, √x, ∛x
+    const expOps = [
+      { label: 'x<sup>2</sup>', title: 'Square (x²)', op: 'square' },
+      { label: 'x<sup>3</sup>', title: 'Cube (x³)', op: 'cube' },
+      { label: '√x', title: 'Square Root (√x)', op: 'sqrt' },
+      { label: '∛x', title: 'Cube Root (∛x)', op: 'cbrt' }
+    ];
+    expOps.forEach(exp => {
+      const btn = document.createElement('button');
+      btn.innerHTML = exp.label;
+      btn.title = exp.title;
+      btn.className = 'sdg-op-btn';
+      btn.style.flex = '1 1 0';
+      btn.style.minWidth = '2.5em';
+      btn.style.maxWidth = '5em';
+      btn.style.margin = '0.2em';
+      // Enable only in operations mode, if one number is selected, not finished, and exp not used
+      btn.disabled = roundFinished || sdgState.selected.length !== 1 || sdgState.expUsed;
+      btn.onclick = function() {
+        if (btn.disabled) return;
+        // Only allow if one number is selected and not used exp yet
+        const idx = sdgState.selected[0];
+        let a = sdgState.numbers[idx];
+        let result, stepStr;
+        if (exp.op === 'square') {
+          result = a * a;
+          stepStr = `${a}² = ${result}`;
+        } else if (exp.op === 'cube') {
+          result = a * a * a;
+          stepStr = `${a}³ = ${result}`;
+        } else if (exp.op === 'sqrt') {
+          if (a < 0) {
+            sdgFeedbackDiv.textContent = '❌ Cannot sqrt negative!';
+            return;
+          }
+          result = Math.sqrt(a);
+          stepStr = `√${a} = ${result}`;
+        } else if (exp.op === 'cbrt') {
+          result = Math.cbrt(a);
+          stepStr = `∛${a} = ${result}`;
         }
-        result = Math.sqrt(a);
-        stepStr = `√${a} = ${result}`;
-      } else if (exp.op === 'cbrt') {
-        result = Math.cbrt(a);
-        stepStr = `∛${a} = ${result}`;
-      }
-      // Mark used
-      sdgState.used[idx] = true;
-      // Add result to numbers at the start (left-most)
-      sdgState.numbers.unshift(result);
-      sdgState.used.unshift(false);
-      // Record step
-      sdgState.steps.push(stepStr);
-      // Mark exp op as used
-      sdgState.expUsed = true;
-      sdgState.expStep = { idx, op: exp.op, input: a, result };
-      // Reset selection and op
-      sdgState.selected = [];
-      sdgState.pendingOp = null;
-      renderSDG();
-    };
-    // Gray out if exp op has been used
-    if (sdgState.expUsed) btn.style.opacity = '0.5';
-    expRow.appendChild(btn);
-  });
-  sdgOpsDiv.appendChild(expRow);
+        // Mark used
+        sdgState.used[idx] = true;
+        // Add result to numbers at the start (left-most)
+        sdgState.numbers.unshift(result);
+        sdgState.used.unshift(false);
+        // Record step
+        sdgState.steps.push(stepStr);
+        // Mark exp op as used
+        sdgState.expUsed = true;
+        sdgState.expStep = { idx, op: exp.op, input: a, result };
+        // Reset selection and op
+        sdgState.selected = [];
+        sdgState.pendingOp = null;
+        renderSDG();
+      };
+      // Gray out if exp op has been used
+      if (sdgState.expUsed) btn.style.opacity = '0.5';
+      expRow.appendChild(btn);
+    });
+    sdgOpsDiv.appendChild(expRow);
+  }
   // Render steps
   sdgExprDiv.innerHTML = sdgState.steps.map(s => `<div>${s}</div>`).join('');
   // Hide submit, enable give up if not finished
