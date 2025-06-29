@@ -269,7 +269,6 @@ const singleDigitsGameDiv = document.getElementById('single-digits-game');
 const sdgNumbersDiv = document.getElementById('sdg-numbers');
 const sdgOpsDiv = document.getElementById('sdg-ops');
 const sdgExprDiv = document.getElementById('sdg-expression');
-const sdgSubmitBtn = document.getElementById('sdg-submit');
 const sdgFeedbackDiv = document.getElementById('sdg-feedback');
 const sdgBackBtn = document.getElementById('sdg-back');
 const sdgNextBtn = document.getElementById('sdg-next');
@@ -602,7 +601,6 @@ sdgUndoBtn.onclick = function() {
     sdgState.finished = false;
     sdgFeedbackDiv.textContent = '';
     sdgNextBtn.style.display = 'none';
-    sdgSubmitBtn.style.display = 'none';
     sdgGiveUpBtn.style.display = '';
     renderSDG();
     return;
