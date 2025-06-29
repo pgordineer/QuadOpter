@@ -858,6 +858,30 @@ footer {
   transition: background 0.18s, color 0.18s, border 0.18s;
   box-shadow: 0 1px 4px #1976d211;
   outline: none;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Suppress all focus/active/hover highlight for operator buttons */
+.sdg-op-btn:focus,
+.sdg-op-btn:active,
+.sdg-op-btn:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  background: #f0f4fa !important;
+  color: #1976d2 !important;
+  border-color: #1976d2 !important;
+}
+.sdg-op-btn.no-hover:hover,
+.sdg-op-btn.no-hover:active,
+.sdg-op-btn.no-hover:focus,
+.sdg-op-btn.no-hover:focus-visible {
+  background: inherit !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: inherit !important;
+  border-color: inherit !important;
+  cursor: pointer !important;
+}
 }
 .sdg-op-btn:hover:not(:disabled),
 .sdg-op-btn:active:not(:disabled) {
