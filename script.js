@@ -2,8 +2,138 @@
 // --- QuadOpter: Operations Mode & Variables Mode (stubs) ---
 function showOperationsMode() {
   currentMode = 'operations';
-  // TODO: Implement Operations mode logic
-  alert('Operations mode coming soon!');
+  let { numbers, solution } = generateSolvableOperationsMode(currentDifficulty);
+  currentNumbers = numbers;
+  currentSolution = solution;
+  startSingleDigitsGame(numbers);
+// --- Operations Mode Generator ---
+// Try all possible ways to use one exponential op at any step, then solve for 24
+function generateSolvableOperationsMode(difficulty) {
+  // Allowed binary ops for difficulty
+  let ops = ['+', '-', '*', '/'];
+  let opCount = {1: 1, 2: 2, 3: 3}[difficulty] || 2;
+  let allowedOps = ops.slice(0, opCount);
+  let maxTries = 2000;
+  let expOps = [
+    { fn: x => x * x, str: a => `(${a})²`, check: x => Math.abs(x) < 100 },
+    { fn: x => x * x * x, str: a => `(${a})³`, check: x => Math.abs(x) < 22 },
+    { fn: x => x >= 0 ? Math.sqrt(x) : NaN, str: a => `√(${a})`, check: x => x >= 0 },
+    { fn: x => Math.cbrt(x), str: a => `∛(${a})`, check: x => true }
+  ];
+  // Try random sets, then for each, try all ways to apply one exp op at any step
+  for (let tries = 0; tries < maxTries; ++tries) {
+    let nums = [randInt(1,9), randInt(1,9), randInt(1,9), randInt(1,9)];
+    // Try all ways to insert one exp op at any step in the solution
+    let solution = find24WithOneExp(nums, allowedOps, expOps, 24);
+    if (solution) {
+      return { numbers: nums, solution };
+    }
+  }
+  // Fallback: just return random numbers
+  return { numbers: [randInt(1,9), randInt(1,9), randInt(1,9), randInt(1,9)], solution: null };
+}
+
+// Try all ways to use one exp op at any step in the solution
+function find24WithOneExp(nums, allowedOps, expOps, target) {
+  // Try all permutations of numbers
+  function* permute(arr) {
+    if (arr.length === 1) yield arr;
+    else {
+      for (let i = 0; i < arr.length; ++i) {
+        let rest = arr.slice(0, i).concat(arr.slice(i+1));
+        for (let p of permute(rest)) yield [arr[i]].concat(p);
+      }
+    }
+  }
+  // Try all op combos
+  function* opCombos(ops, n) {
+    if (n === 0) yield [];
+    else {
+      for (let op of ops) {
+        for (let rest of opCombos(ops, n-1)) yield [op].concat(rest);
+      }
+    }
+  }
+  // Try all parenthesizations, with one exp op applied at any step
+  for (let perm of permute(nums)) {
+    for (let ops of opCombos(allowedOps, 3)) {
+      // Try all exp op placements: before any op, or after any op result
+      // 5 slots: before 1st, after 1st, after 2nd, after 3rd, after final
+      for (let expIdx = 0; expIdx < 5; ++expIdx) {
+        for (let exp of expOps) {
+          // Build the expression step by step
+          let vals = perm.slice();
+          let usedExp = false;
+          let expStepDesc = '';
+          let applyExp = (x, idx) => {
+            if (!usedExp && exp.check(x)) {
+              usedExp = true;
+              expStepDesc = exp.str(x);
+              return exp.fn(x);
+            }
+            return x;
+          };
+          let a = vals[0], b = vals[1], c = vals[2], d = vals[3];
+          let v1 = expIdx === 0 ? applyExp(a, 0) : a;
+          let v2 = expIdx === 1 ? applyExp(b, 1) : b;
+          let v3 = expIdx === 2 ? applyExp(c, 2) : c;
+          let v4 = expIdx === 3 ? applyExp(d, 3) : d;
+          // Now try all parenthesizations, applying exp op after any op result
+          let exprs = [
+            () => {
+              let steps = [];
+              let r1 = evalBinary(v1, ops[0], v2); steps.push(`(${v1} ${ops[0]} ${v2}) = ${r1}`);
+              if (expIdx === 4 && !usedExp) { r1 = applyExp(r1, 4); if (usedExp) steps.push(`${expStepDesc} = ${r1}`); }
+              let r2 = evalBinary(r1, ops[1], v3); steps.push(`(${r1} ${ops[1]} ${v3}) = ${r2}`);
+              if (expIdx === 4 && !usedExp) { r2 = applyExp(r2, 4); if (usedExp) steps.push(`${expStepDesc} = ${r2}`); }
+              let r3 = evalBinary(r2, ops[2], v4); steps.push(`(${r2} ${ops[2]} ${v4}) = ${r3}`);
+              if (expIdx === 4 && !usedExp) { r3 = applyExp(r3, 4); if (usedExp) steps.push(`${expStepDesc} = ${r3}`); }
+              return { result: r3, steps };
+            },
+            () => {
+              let steps = [];
+              let r1 = evalBinary(v2, ops[1], v3); steps.push(`(${v2} ${ops[1]} ${v3}) = ${r1}`);
+              if (expIdx === 4 && !usedExp) { r1 = applyExp(r1, 4); if (usedExp) steps.push(`${expStepDesc} = ${r1}`); }
+              let r2 = evalBinary(v1, ops[0], r1); steps.push(`(${v1} ${ops[0]} ${r1}) = ${r2}`);
+              if (expIdx === 4 && !usedExp) { r2 = applyExp(r2, 4); if (usedExp) steps.push(`${expStepDesc} = ${r2}`); }
+              let r3 = evalBinary(r2, ops[2], v4); steps.push(`(${r2} ${ops[2]} ${v4}) = ${r3}`);
+              if (expIdx === 4 && !usedExp) { r3 = applyExp(r3, 4); if (usedExp) steps.push(`${expStepDesc} = ${r3}`); }
+              return { result: r3, steps };
+            },
+            () => {
+              let steps = [];
+              let r1 = evalBinary(v3, ops[2], v4); steps.push(`(${v3} ${ops[2]} ${v4}) = ${r1}`);
+              if (expIdx === 4 && !usedExp) { r1 = applyExp(r1, 4); if (usedExp) steps.push(`${expStepDesc} = ${r1}`); }
+              let r2 = evalBinary(v2, ops[1], r1); steps.push(`(${v2} ${ops[1]} ${r1}) = ${r2}`);
+              if (expIdx === 4 && !usedExp) { r2 = applyExp(r2, 4); if (usedExp) steps.push(`${expStepDesc} = ${r2}`); }
+              let r3 = evalBinary(v1, ops[0], r2); steps.push(`(${v1} ${ops[0]} ${r2}) = ${r3}`);
+              if (expIdx === 4 && !usedExp) { r3 = applyExp(r3, 4); if (usedExp) steps.push(`${expStepDesc} = ${r3}`); }
+              return { result: r3, steps };
+            }
+          ];
+          for (let e of exprs) {
+            usedExp = false;
+            expStepDesc = '';
+            let { result, steps } = e();
+            if (usedExp && Math.abs(result - target) < 1e-6 && isFinite(result)) {
+              // Return the steps as a solution string
+              return steps.join('<br>');
+            }
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function evalBinary(a, op, b) {
+  if (op === '+') return a + b;
+  if (op === '-') return a - b;
+  if (op === '*') return a * b;
+  if (op === '/') return b !== 0 ? a / b : NaN;
+  return NaN;
+}
 }
 
 function showVariablesMode() {
@@ -122,7 +252,9 @@ let sdgState = {
   ops: [],
   expr: [],
   step: 0,
-  finished: false // Track if round is finished
+  finished: false, // Track if round is finished
+  expUsed: false, // Track if exponential op has been used (for operations mode)
+  expStep: null // Track which exp op was used (optional, for undo)
 };
 
 function resetSDGState(numbers) {
@@ -132,6 +264,8 @@ function resetSDGState(numbers) {
   sdgState.pendingOp = null;
   sdgState.steps = [];
   sdgState.finished = false;
+  sdgState.expUsed = false;
+  sdgState.expStep = null;
 }
 
 function renderSDG() {
@@ -218,6 +352,7 @@ function renderSDG() {
   });
   // Render ops (no parens)
   sdgOpsDiv.innerHTML = '';
+  // Standard operations row
   const opsRow = document.createElement('div');
   opsRow.style.display = 'flex';
   opsRow.style.justifyContent = 'center';
@@ -244,6 +379,75 @@ function renderSDG() {
     opsRow.appendChild(btn);
   });
   sdgOpsDiv.appendChild(opsRow);
+
+  // Exponential operations row (active in operations mode)
+  const expRow = document.createElement('div');
+  expRow.style.display = 'flex';
+  expRow.style.justifyContent = 'center';
+  expRow.style.gap = '0.5em';
+  expRow.style.width = '100%';
+  expRow.style.flexWrap = 'wrap';
+  // Button labels: x², x³, √x, ∛x
+  const expOps = [
+    { label: 'x<sup>2</sup>', title: 'Square (x²)', op: 'square' },
+    { label: 'x<sup>3</sup>', title: 'Cube (x³)', op: 'cube' },
+    { label: '√x', title: 'Square Root (√x)', op: 'sqrt' },
+    { label: '∛x', title: 'Cube Root (∛x)', op: 'cbrt' }
+  ];
+  expOps.forEach(exp => {
+    const btn = document.createElement('button');
+    btn.innerHTML = exp.label;
+    btn.title = exp.title;
+    btn.className = 'sdg-op-btn';
+    btn.style.flex = '1 1 0';
+    btn.style.minWidth = '2.5em';
+    btn.style.maxWidth = '5em';
+    btn.style.margin = '0.2em';
+    // Enable only in operations mode, if one number is selected, not finished, and exp not used
+    btn.disabled = roundFinished || currentMode !== 'operations' || sdgState.selected.length !== 1 || sdgState.expUsed;
+    btn.onclick = function() {
+      if (btn.disabled) return;
+      // Only allow if one number is selected and not used exp yet
+      const idx = sdgState.selected[0];
+      let a = sdgState.numbers[idx];
+      let result, stepStr;
+      if (exp.op === 'square') {
+        result = a * a;
+        stepStr = `${a}² = ${result}`;
+      } else if (exp.op === 'cube') {
+        result = a * a * a;
+        stepStr = `${a}³ = ${result}`;
+      } else if (exp.op === 'sqrt') {
+        if (a < 0) {
+          sdgFeedbackDiv.textContent = '❌ Cannot sqrt negative!';
+          return;
+        }
+        result = Math.sqrt(a);
+        stepStr = `√${a} = ${result}`;
+      } else if (exp.op === 'cbrt') {
+        result = Math.cbrt(a);
+        stepStr = `∛${a} = ${result}`;
+      }
+      // Mark used
+      sdgState.used[idx] = true;
+      // Add result to numbers at the start (left-most)
+      sdgState.numbers.unshift(result);
+      sdgState.used.unshift(false);
+      // Record step
+      sdgState.steps.push(stepStr);
+      // Mark exp op as used
+      sdgState.expUsed = true;
+      sdgState.expStep = { idx, op: exp.op, input: a, result };
+      // Reset selection and op
+      sdgState.selected = [];
+      sdgState.pendingOp = null;
+      renderSDG();
+    };
+    // Gray out if exp op has been used
+    if (sdgState.expUsed) btn.style.opacity = '0.5';
+    expRow.appendChild(btn);
+  });
+  sdgOpsDiv.appendChild(expRow);
   // Render steps
   sdgExprDiv.innerHTML = sdgState.steps.map(s => `<div>${s}</div>`).join('');
   // Hide submit, enable give up if not finished
@@ -352,7 +556,34 @@ sdgUndoBtn.onclick = function() {
   if (sdgState.steps.length === 0 || sdgState.finished) return;
   // Remove last step
   const lastStep = sdgState.steps.pop();
-  // Parse last step: e.g. "9 + 1 = 10"
+  // Check if last step was an exponential op (for operations mode)
+  if (currentMode === 'operations' && sdgState.expUsed && sdgState.expStep && (lastStep.includes('²') || lastStep.includes('³') || lastStep.startsWith('√') || lastStep.startsWith('∛'))) {
+    // Remove last number (the result)
+    let resultIdx = sdgState.numbers.lastIndexOf(sdgState.expStep.result);
+    if (resultIdx !== -1) {
+      sdgState.numbers.splice(resultIdx, 1);
+      sdgState.used.splice(resultIdx, 1);
+    }
+    // Unmark the original number as used
+    if (typeof sdgState.expStep.idx === 'number') {
+      sdgState.used[sdgState.expStep.idx] = false;
+    }
+    // Reset exp op state
+    sdgState.expUsed = false;
+    sdgState.expStep = null;
+    // Reset selection and op
+    sdgState.selected = [];
+    sdgState.pendingOp = null;
+    // Unfinish round if it was finished
+    sdgState.finished = false;
+    sdgFeedbackDiv.textContent = '';
+    sdgNextBtn.style.display = 'none';
+    sdgSubmitBtn.style.display = 'none';
+    sdgGiveUpBtn.style.display = '';
+    renderSDG();
+    return;
+  }
+  // Otherwise, handle normal undo for binary ops
   const match = lastStep.match(/(-?\d+(?:\.\d+)?) ([+\-×÷]) (-?\d+(?:\.\d+)?) = (-?\d+(?:\.\d+)?)/);
   if (!match) return;
   const a = Number(match[1]);
