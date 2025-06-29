@@ -206,6 +206,16 @@ function find24Solution(nums, allowedOps, target) {
   function uniqueOpCount(opsArr) {
     return new Set(opsArr).size;
   }
+  // Helper for stepwise solution
+  function stepwise(a, op, b) {
+    let symbol = op === '*' ? '×' : op === '/' ? '÷' : op;
+    let res;
+    if (op === '+') res = a + b;
+    else if (op === '-') res = a - b;
+    else if (op === '*') res = a * b;
+    else if (op === '/') res = b !== 0 ? a / b : NaN;
+    return { res, str: `${a} ${symbol} ${b} = ${res}` };
+  }
   for (let perm of permute(nums)) {
     for (let ops of opCombos(allowedOps, 3)) {
       // Enforce operation diversity for Medium/Hard
@@ -213,20 +223,41 @@ function find24Solution(nums, allowedOps, target) {
       if (allowedOps.length === 2) requireUniqueOps = 2; // Medium
       if (allowedOps.length === 3) requireUniqueOps = 3; // Hard
       if (requireUniqueOps > 0 && uniqueOpCount(ops) < requireUniqueOps) continue;
-      // Try all parenthesizations
-      let exprs = [
-        `(${perm[0]}${ops[0]}${perm[1]})${ops[1]}${perm[2]}${ops[2]}${perm[3]}`,
-        `(${perm[0]}${ops[0]}(${perm[1]}${ops[1]}${perm[2]}))${ops[2]}${perm[3]}`,
-        `${perm[0]}${ops[0]}((${perm[1]}${ops[1]}${perm[2]})${ops[2]}${perm[3]})`,
-        `${perm[0]}${ops[0]}(${perm[1]}${ops[1]}(${perm[2]}${ops[2]}${perm[3]}))`,
-        `(${perm[0]}${ops[0]}${perm[1]})${ops[1]}(${perm[2]}${ops[2]}${perm[3]})`
-      ];
-      for (let expr of exprs) {
-        try {
-          if (Math.abs(eval(expr) - target) < 1e-6) {
-            return expr;
-          }
-        } catch (e) {}
+      // Try all parenthesizations, but now build stepwise solution
+      // 1. ((a op0 b) op1 c) op2 d
+      let s1 = stepwise(perm[0], ops[0], perm[1]);
+      let s2 = stepwise(s1.res, ops[1], perm[2]);
+      let s3 = stepwise(s2.res, ops[2], perm[3]);
+      if (Math.abs(s3.res - target) < 1e-6 && isFinite(s3.res)) {
+        return [s1.str, s2.str, s3.str].join('<br>');
+      }
+      // 2. (a op0 (b op1 c)) op2 d
+      let s21 = stepwise(perm[1], ops[1], perm[2]);
+      let s22 = stepwise(perm[0], ops[0], s21.res);
+      let s23 = stepwise(s22.res, ops[2], perm[3]);
+      if (Math.abs(s23.res - target) < 1e-6 && isFinite(s23.res)) {
+        return [s21.str, s22.str, s23.str].join('<br>');
+      }
+      // 3. a op0 ((b op1 c) op2 d)
+      let s31 = stepwise(perm[1], ops[1], perm[2]);
+      let s32 = stepwise(s31.res, ops[2], perm[3]);
+      let s33 = stepwise(perm[0], ops[0], s32.res);
+      if (Math.abs(s33.res - target) < 1e-6 && isFinite(s33.res)) {
+        return [s31.str, s32.str, s33.str].join('<br>');
+      }
+      // 4. a op0 (b op1 (c op2 d))
+      let s41 = stepwise(perm[2], ops[2], perm[3]);
+      let s42 = stepwise(perm[1], ops[1], s41.res);
+      let s43 = stepwise(perm[0], ops[0], s42.res);
+      if (Math.abs(s43.res - target) < 1e-6 && isFinite(s43.res)) {
+        return [s41.str, s42.str, s43.str].join('<br>');
+      }
+      // 5. (a op0 b) op1 (c op2 d)
+      let s51 = stepwise(perm[0], ops[0], perm[1]);
+      let s52 = stepwise(perm[2], ops[2], perm[3]);
+      let s53 = stepwise(s51.res, ops[1], s52.res);
+      if (Math.abs(s53.res - target) < 1e-6 && isFinite(s53.res)) {
+        return [s51.str, s52.str, s53.str].join('<br>');
       }
     }
   }
@@ -663,7 +694,8 @@ function generateSolvableDoubleDigits(difficulty) {
     }
   }
   let fallback = [randInt(10,24), randInt(1,24), randInt(1,24), randInt(1,24)];
-  return {numbers: fallback, solution: null};
+  let fallbackSolution = find24Solution(fallback, allowedOps, 24);
+  return {numbers: fallback, solution: fallbackSolution};
 }
 
 function showDoubleDigitsMode() {
@@ -702,7 +734,8 @@ function generateSolvableIntegers(difficulty) {
     let n = randInt(-24, 24);
     if (n !== 0) fallback.push(n);
   }
-  return {numbers: fallback, solution: null};
+  let fallbackSolution = find24Solution(fallback, allowedOps, 24);
+  return {numbers: fallback, solution: fallbackSolution};
 }
 
 function showIntegersMode() {
