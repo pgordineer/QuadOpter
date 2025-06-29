@@ -398,8 +398,12 @@ function renderSDG() {
   });
   sdgOpsDiv.appendChild(opsRow);
 
-  // Exponential operations row: only show in operations mode
+  // Add spacing between rows
   if (currentMode === 'operations') {
+    const spacer = document.createElement('div');
+    spacer.style.height = '0.7em';
+    sdgOpsDiv.appendChild(spacer);
+
     const expRow = document.createElement('div');
     expRow.style.display = 'flex';
     expRow.style.justifyContent = 'center';
