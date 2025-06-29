@@ -861,8 +861,13 @@ footer {
   -webkit-tap-highlight-color: transparent !important;
 }
 
-/* Operator buttons never show hover/active/focus highlight, only default or selected state */
-/* Remove all hover/active/focus for operator buttons */
+.sdg-op-btn.selected {
+  background: #ffe082 !important;
+  color: #222 !important;
+  border-color: #fbc02d !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
 .sdg-op-btn:hover,
 .sdg-op-btn:active,
 .sdg-op-btn:focus,
