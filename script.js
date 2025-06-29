@@ -456,6 +456,7 @@ function renderSDG() {
   // Render steps
   sdgExprDiv.innerHTML = sdgState.steps.map(s => `<div>${s}</div>`).join('');
   // Show solution if round is finished and correct
+  // If finished and correct, show solution and disable undo
   if (sdgState.finished && sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1 && Math.abs(sdgState.numbers.find((n, i) => !sdgState.used[i]) - 24) < 1e-6) {
     let html = `<div style='color:#1976d2;'><div>🎉 Correct!</div>`;
     if (currentSolution) {
@@ -470,10 +471,12 @@ function renderSDG() {
     sdgNextBtn.style.display = '';
     sdgGiveUpBtn.style.display = 'none';
   } else if (sdgState.finished && sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
+    // If finished and incorrect, allow undo
     sdgFeedbackDiv.textContent = '❌ Not 24!';
     sdgFeedbackDiv.style.color = '#c00';
     sdgNextBtn.style.display = '';
     sdgGiveUpBtn.style.display = 'none';
+    // Do NOT disable undo here
   } else {
     // Hide give up if finished, otherwise enable/disable
     sdgFeedbackDiv.textContent = '';
@@ -563,7 +566,7 @@ sdgGiveUpBtn.onclick = function() {
 
 // Undo button logic (restore correct state)
 sdgUndoBtn.onclick = function() {
-  if (sdgState.steps.length === 0 || sdgState.finished) return;
+  if (sdgState.steps.length === 0) return;
   // Remove last step
   const lastStep = sdgState.steps.pop();
   // Check if last step was an exponential op (for operations mode)
