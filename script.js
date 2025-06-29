@@ -66,7 +66,13 @@ function find24WithOneExp(nums, allowedOps, expOps, target) {
       // Try all exp op placements: before any op, or after any op result
       // 5 slots: before 1st, after 1st, after 2nd, after 3rd, after final
       for (let expIdx = 0; expIdx < 5; ++expIdx) {
-        for (let exp of expOps) {
+        // Shuffle expOps for each exp op placement to increase variety
+        let shuffledExpOps = expOps.slice();
+        for (let i = shuffledExpOps.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffledExpOps[i], shuffledExpOps[j]] = [shuffledExpOps[j], shuffledExpOps[i]];
+        }
+        for (let exp of shuffledExpOps) {
           // Build the expression step by step
           let vals = perm.slice();
           let usedExp = false;
