@@ -54,7 +54,7 @@ function generateSolvableOperationsMode(difficulty) {
   }
   // Try random sets, for each try, pick a single random exp op to use
   for (let tries = 0; tries < maxTries; ++tries) {
-    let nums = [randInt(1,9), randInt(1,9), randInt(1,9), randInt(1,9)];
+    let nums = [randInt(1,24), randInt(1,24), randInt(1,24), randInt(1,24)];
     // Pick a single random exp op for this attempt
     const expOp = expOps[Math.floor(Math.random() * expOps.length)];
     let solution = find24WithOneExp(nums, allowedOps, [expOp], 24);
@@ -367,7 +367,7 @@ function renderSDG() {
       if (sdgState.selected.length === 0 && !sdgState.pendingOp) {
         sdgState.selected = [idx];
         // Defer render to next tick to ensure DOM updates before next tap
-        setTimeout(renderSDG, 0);
+        window.requestAnimationFrame(renderSDG);
       }
       // If one number is selected and a pendingOp, and this is a different number, perform the operation
       else if (sdgState.selected.length === 1 && sdgState.pendingOp && sdgState.selected[0] !== idx) {
@@ -404,13 +404,13 @@ function renderSDG() {
         } else if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
           sdgState.finished = true;
         }
-        setTimeout(renderSDG, 0);
+        window.requestAnimationFrame(renderSDG);
       }
       // If a number is already selected but no pendingOp, allow changing selection
       else if (sdgState.selected.length === 1 && !sdgState.pendingOp) {
         if (sdgState.selected[0] !== idx) {
           sdgState.selected = [idx];
-          setTimeout(renderSDG, 0);
+          window.requestAnimationFrame(renderSDG);
         }
       }
     };
