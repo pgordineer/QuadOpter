@@ -438,9 +438,10 @@ function renderSDG() {
     btn.style.minWidth = '2.5em';
     btn.style.maxWidth = '5em';
     btn.style.margin = '0.2em';
-    btn.disabled = roundFinished || sdgState.selected.length !== 1 || sdgState.pendingOp;
+    // Only disable if round is finished or no number is selected
+    btn.disabled = roundFinished || sdgState.selected.length !== 1;
     btn.onclick = function() {
-      if (roundFinished || sdgState.selected.length !== 1 || sdgState.pendingOp) return;
+      if (roundFinished || sdgState.selected.length !== 1) return;
       sdgState.pendingOp = op;
       renderSDG();
     };
