@@ -8,7 +8,7 @@ A beautiful, mobile-friendly math puzzle game inspired by Math24. Combine four n
 
 ## Play Now
 
-👉 [QuadOpter](https://pgordineer.github.io/QuadOpter/)
+👉 [QuadOpter - Math 24 Game](https://pgordineer.github.io/QuadOpter/)
 
 ---
 
@@ -16,8 +16,9 @@ A beautiful, mobile-friendly math puzzle game inspired by Math24. Combine four n
 
 - 🧮 **Math24-inspired gameplay:** Combine four numbers using +, -, ×, ÷ to make 24.
 - 🗓️ **Daily challenge calendar:** Play a new puzzle every day.
+- 🏆 **Score and High Score tracking** (with partial credit for fewer moves).
 - 💾 **Personal high scores** are saved in your browser.
-- 📱 **Mobile-friendly** works great on desktop or mobile browsers!
+- 📱 **Mobile-friendly, modern UI** with beautiful, responsive design.
 - 👨‍💻 **Created by [@pgordineer](https://github.com/pgordineer)**
 
 ---
