@@ -2,8 +2,163 @@
 // --- QuadOpter: Operations Mode & Variables Mode (stubs) ---
 function showOperationsMode() {
   currentMode = 'operations';
-  // TODO: Implement Operations mode logic
-  alert('Operations mode coming soon!');
+  let {numbers, solution} = generateSolvableOperations(currentDifficulty);
+  currentNumbers = numbers;
+  currentSolution = solution;
+  startSingleDigitsGame(numbers);
+}
+
+// --- Operations Mode Generator ---
+function generateSolvableOperations(difficulty) {
+  // Allowed base ops
+  let ops = ['+', '-', '*', '/'];
+  let opCount = {1: 1, 2: 2, 3: 3}[difficulty] || 2;
+  let allowedOps = ops.slice(0, opCount);
+  // Exponential ops
+  const expOps = [
+    { label: 'x²', fn: x => x * x, name: 'square', js: x => `(${x})**2` },
+    { label: 'x³', fn: x => x * x * x, name: 'cube', js: x => `(${x})**3` },
+    { label: '√x', fn: x => Math.sqrt(x), name: 'sqrt', js: x => `Math.sqrt(${x})` },
+    { label: '∛x', fn: x => Math.cbrt(x), name: 'cbrt', js: x => `Math.cbrt(${x})` }
+  ];
+  let maxTries = 2000;
+  let target = 24;
+  for (let tries = 0; tries < maxTries; ++tries) {
+    // Generate 4 single-digit numbers
+    let nums = [randInt(1,9), randInt(1,9), randInt(1,9), randInt(1,9)];
+    // Try all possible ways to insert one exp op at any step
+    let found = find24WithOneExp(nums, allowedOps, expOps, target);
+    if (found) {
+      return {numbers: nums, solution: found};
+    }
+  }
+  // Fallback: just return random numbers
+  return {numbers: [randInt(1,9), randInt(1,9), randInt(1,9), randInt(1,9)], solution: null};
+}
+
+// Try all ways to use exactly one exp op and reach 24
+function find24WithOneExp(nums, allowedOps, expOps, target) {
+  // Helper: generate all possible expressions using exactly one exp op
+  function* permute(arr) {
+    if (arr.length === 1) yield arr;
+    else {
+      for (let i = 0; i < arr.length; ++i) {
+        let rest = arr.slice(0, i).concat(arr.slice(i+1));
+        for (let p of permute(rest)) yield [arr[i]].concat(p);
+      }
+    }
+  }
+  function* opCombos(ops, n) {
+    if (n === 0) yield [];
+    else {
+      for (let op of ops) {
+        for (let rest of opCombos(ops, n-1)) yield [op].concat(rest);
+      }
+    }
+  }
+  // Try all permutations and op combos
+  for (let perm of permute(nums)) {
+    for (let ops of opCombos(allowedOps, 3)) {
+      // Try all possible exp op placements (on any intermediate result or input)
+      // For each of the 5 possible intermediate values (4 inputs, 1 after first op, 1 after second, 1 after third)
+      // We'll try applying the exp op at each possible step
+      // We'll use a tree of operations, so try all parenthesizations
+      // For each parenthesization, try all exp ops at all possible nodes
+      // We'll use a simple approach: try all 5 parenthesizations, and for each, try all exp ops at all possible nodes
+      let exprs = [
+        // ((a op0 b) op1 c) op2 d
+        function(a,b,c,d,op0,op1,op2) {
+          return [
+            { node: 'a', expr: 'A' },
+            { node: 'b', expr: 'B' },
+            { node: 'c', expr: 'C' },
+            { node: 'd', expr: 'D' },
+            { node: 'ab', expr: `(A${op0}B)` },
+            { node: 'abc', expr: `((A${op0}B)${op1}C)` },
+            { node: 'abcd', expr: `(((A${op0}B)${op1}C)${op2}D)` }
+          ];
+        },
+        // (a op0 (b op1 c)) op2 d
+        function(a,b,c,d,op0,op1,op2) {
+          return [
+            { node: 'a', expr: 'A' },
+            { node: 'b', expr: 'B' },
+            { node: 'c', expr: 'C' },
+            { node: 'd', expr: 'D' },
+            { node: 'bc', expr: `(B${op1}C)` },
+            { node: 'abc', expr: `(A${op0}(B${op1}C))` },
+            { node: 'abcd', expr: `((A${op0}(B${op1}C))${op2}D)` }
+          ];
+        },
+        // (a op0 b) op1 (c op2 d)
+        function(a,b,c,d,op0,op1,op2) {
+          return [
+            { node: 'a', expr: 'A' },
+            { node: 'b', expr: 'B' },
+            { node: 'c', expr: 'C' },
+            { node: 'd', expr: 'D' },
+            { node: 'ab', expr: `(A${op0}B)` },
+            { node: 'cd', expr: `(C${op2}D)` },
+            { node: 'abcd', expr: `((A${op0}B)${op1}(C${op2}D))` }
+          ];
+        },
+        // a op0 ((b op1 c) op2 d)
+        function(a,b,c,d,op0,op1,op2) {
+          return [
+            { node: 'a', expr: 'A' },
+            { node: 'b', expr: 'B' },
+            { node: 'c', expr: 'C' },
+            { node: 'd', expr: 'D' },
+            { node: 'bc', expr: `(B${op1}C)` },
+            { node: 'bcd', expr: `((B${op1}C)${op2}D)` },
+            { node: 'abcd', expr: `(A${op0}((B${op1}C)${op2}D))` }
+          ];
+        },
+        // a op0 (b op1 (c op2 d))
+        function(a,b,c,d,op0,op1,op2) {
+          return [
+            { node: 'a', expr: 'A' },
+            { node: 'b', expr: 'B' },
+            { node: 'c', expr: 'C' },
+            { node: 'd', expr: 'D' },
+            { node: 'cd', expr: `(C${op2}D)` },
+            { node: 'bcd', expr: `(B${op1}(C${op2}D))` },
+            { node: 'abcd', expr: `(A${op0}(B${op1}(C${op2}D)))` }
+          ];
+        }
+      ];
+      for (let exprFn of exprs) {
+        let nodes = exprFn(perm[0], perm[1], perm[2], perm[3], ops[0], ops[1], ops[2]);
+        // Try all exp ops at all nodes except the root (must use exactly one exp op)
+        for (let exp of expOps) {
+          for (let i = 0; i < nodes.length - 1; ++i) {
+            // Build expr with exp op at node i
+            let replaced = nodes.map((n, idx) => {
+              if (idx === i) {
+                // Replace A/B/C/D with perm values
+                let base = n.expr.replace('A', perm[0]).replace('B', perm[1]).replace('C', perm[2]).replace('D', perm[3]);
+                return exp.js(base);
+              } else {
+                return n.expr.replace('A', perm[0]).replace('B', perm[1]).replace('C', perm[2]).replace('D', perm[3]);
+              }
+            });
+            // Now, build up the final expr using the last node (root)
+            let finalExpr = replaced[replaced.length - 1];
+            try {
+              let val = eval(finalExpr);
+              if (Math.abs(val - target) < 1e-6) {
+                // For display, show which exp op and where
+                let display = finalExpr.replace(/\*\*/g, '^').replace(/Math\.sqrt/g, '√').replace(/Math\.cbrt/g, '∛');
+                return display;
+              }
+            } catch (e) {}
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
 }
 
 function showVariablesMode() {
@@ -122,7 +277,8 @@ let sdgState = {
   ops: [],
   expr: [],
   step: 0,
-  finished: false // Track if round is finished
+  finished: false, // Track if round is finished
+  expUsed: false // For Operations mode: has an exponential op been used?
 };
 
 function resetSDGState(numbers) {
@@ -132,6 +288,7 @@ function resetSDGState(numbers) {
   sdgState.pendingOp = null;
   sdgState.steps = [];
   sdgState.finished = false;
+  sdgState.expUsed = false;
 }
 
 function renderSDG() {
@@ -213,6 +370,10 @@ function renderSDG() {
           renderSDG();
         }
       }
+      // If in operations mode, allow exponential op if one number is selected, no pendingOp, and exp not used
+      else if (currentMode === 'operations' && sdgState.selected.length === 1 && !sdgState.pendingOp && !sdgState.expUsed) {
+        // Do nothing here, handled by exp op buttons below
+      }
     };
     sdgNumbersDiv.appendChild(btn);
   });
@@ -244,7 +405,98 @@ function renderSDG() {
     opsRow.appendChild(btn);
   });
   sdgOpsDiv.appendChild(opsRow);
-  // Render steps
+
+  // --- Operations mode: Exponential operations row ---
+  if (currentMode === 'operations') {
+    const expRow = document.createElement('div');
+    expRow.style.display = 'flex';
+    expRow.style.justifyContent = 'center';
+    expRow.style.gap = '0.5em';
+    expRow.style.width = '100%';
+    expRow.style.flexWrap = 'wrap';
+    expRow.style.marginTop = '0.5em';
+    // Use Unicode superscripts and root symbols for math formatting
+    const expOps = [
+      { label: 'x b2', fn: x => x * x, name: 'square', html: x => `${x}<sup>2</sup>` },
+      { label: 'x b3', fn: x => x * x * x, name: 'cube', html: x => `${x}<sup>3</sup>` },
+      { label: ' b2√x', fn: x => Math.sqrt(x), name: 'sqrt', html: x => ` b2√${x}` },
+      { label: ' b3√x', fn: x => Math.cbrt(x), name: 'cbrt', html: x => ` b3√${x}` }
+    ];
+    expOps.forEach(exp => {
+      const btn = document.createElement('button');
+      // Use innerHTML for math formatting
+      if (exp.name === 'square') btn.innerHTML = 'x<sup>2</sup>';
+      else if (exp.name === 'cube') btn.innerHTML = 'x<sup>3</sup>';
+      else if (exp.name === 'sqrt') btn.innerHTML = '<span style="font-size:1.1em;">√x</span>';
+      else if (exp.name === 'cbrt') btn.innerHTML = '<span style="font-size:1.1em;">∛x</span>';
+      else btn.textContent = exp.label;
+      btn.className = 'sdg-op-btn';
+      btn.style.flex = '1 1 0';
+      btn.style.minWidth = '2.5em';
+      btn.style.maxWidth = '5em';
+      btn.style.margin = '0.2em';
+      // Enable only if one number is selected, exp not used, and not finished
+      btn.disabled = roundFinished || sdgState.expUsed || sdgState.selected.length !== 1;
+      btn.onclick = function() {
+        if (roundFinished || sdgState.expUsed || sdgState.selected.length !== 1) return;
+        const i = sdgState.selected[0];
+        const a = sdgState.numbers[i];
+        let result = exp.fn(a);
+        // For sqrt/cbrt, check for NaN
+        if (isNaN(result)) {
+          sdgFeedbackDiv.textContent = '❌ Invalid operation!';
+          return;
+        }
+        // Mark used
+        sdgState.used[i] = true;
+        // Add result to numbers at the start (left-most)
+        sdgState.numbers.unshift(result);
+        sdgState.used.unshift(false);
+        // Record step with math formatting
+        let stepStr = '';
+        if (exp.name === 'square') stepStr = `${a}<sup>2</sup> = ${result}`;
+        else if (exp.name === 'cube') stepStr = `${a}<sup>3</sup> = ${result}`;
+        else if (exp.name === 'sqrt') stepStr = `√${a} = ${result}`;
+        else if (exp.name === 'cbrt') stepStr = `∛${a} = ${result}`;
+        else stepStr = `${exp.label.replace('x', a)} = ${result}`;
+        sdgState.steps.push(stepStr);
+        // Mark exp op as used
+        sdgState.expUsed = true;
+        // Reset selection and op
+        sdgState.selected = [];
+        sdgState.pendingOp = null;
+        // Check for win
+        if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1 && Math.abs(result - 24) < 1e-6) {
+          sdgState.finished = true;
+          sdgFeedbackDiv.textContent = '🎉 Correct!';
+          sdgFeedbackDiv.style.color = '#1976d2';
+          sdgNextBtn.style.display = '';
+          sdgSubmitBtn.style.display = 'none';
+          sdgGiveUpBtn.style.display = 'none';
+        } else if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
+          sdgState.finished = true;
+          sdgFeedbackDiv.textContent = '❌ Not 24!';
+          sdgFeedbackDiv.style.color = '#c00';
+          sdgNextBtn.style.display = '';
+          sdgSubmitBtn.style.display = 'none';
+          sdgGiveUpBtn.style.display = 'none';
+        } else {
+          sdgFeedbackDiv.textContent = '';
+        }
+        renderSDG();
+      };
+      expRow.appendChild(btn);
+    });
+    // Add a visual separator above the exp row for clarity
+    const sep = document.createElement('div');
+    sep.style.height = '0.2em';
+    sep.style.width = '100%';
+    sep.style.display = 'block';
+    sep.style.margin = '0.2em 0 0.2em 0';
+    sdgOpsDiv.appendChild(sep);
+    sdgOpsDiv.appendChild(expRow);
+  }
+  // Render steps (support HTML for exponents/roots)
   sdgExprDiv.innerHTML = sdgState.steps.map(s => `<div>${s}</div>`).join('');
   // Hide submit, enable give up if not finished
   sdgSubmitBtn.style.display = 'none';
