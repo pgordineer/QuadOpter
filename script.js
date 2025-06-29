@@ -25,27 +25,16 @@ function generateSolvableSingleDigits(difficulty) {
   // and ensure the numbers are all single digits (1-9)
   let ops = ['+', '-', '*', '/'];
   let opCount = {1: 1, 2: 2, 3: 3}[difficulty] || 2;
+  let allowedOps = ops.slice(0, opCount);
   let maxTries = 1000;
   for (let tries = 0; tries < maxTries; ++tries) {
-    // Randomly pick 3 operations
-    let chosenOps = [];
-    for (let i = 0; i < 3; ++i) {
-      chosenOps.push(ops[randInt(0, opCount-1)]);
-    }
-    // Randomly pick a target (24 for classic Math24)
     let target = 24;
-    // Randomly generate a valid expression tree that evaluates to 24
-    // We'll use a simple left-to-right approach for now
-    // a op1 b op2 c op3 d = 24
-    // Try random numbers and see if we can solve backwards
     let nums = [randInt(1,9), randInt(1,9), randInt(1,9), randInt(1,9)];
-    // Try all permutations and parenthesizations (brute force)
-    let solution = find24Solution(nums, chosenOps, target);
+    let solution = find24Solution(nums, allowedOps, target);
     if (solution) {
       return {numbers: nums, solution: solution};
     }
   }
-  // Fallback: just return random numbers
   return {numbers: [randInt(1,9), randInt(1,9), randInt(1,9), randInt(1,9)], solution: null};
 }
 
@@ -141,6 +130,10 @@ function renderSDG() {
     const btn = document.createElement('button');
     btn.textContent = num;
     btn.className = 'sdg-btn';
+    btn.style.minWidth = '3.2em'; // wider for negative numbers
+    btn.style.maxWidth = '5em';
+    btn.style.textAlign = 'center';
+    btn.style.margin = '0.2em';
     btn.disabled = sdgState.used[idx] || roundFinished;
     btn.onclick = function() {
       if (sdgState.step % 2 === 0 && !sdgState.used[idx] && !roundFinished) {
@@ -347,22 +340,17 @@ if (singleDigitsBtn) {
 function generateSolvableDoubleDigits(difficulty) {
   let ops = ['+', '-', '*', '/'];
   let opCount = {1: 1, 2: 2, 3: 3}[difficulty] || 2;
+  let allowedOps = ops.slice(0, opCount);
   let maxTries = 1000;
   for (let tries = 0; tries < maxTries; ++tries) {
-    let chosenOps = [];
-    for (let i = 0; i < 3; ++i) {
-      chosenOps.push(ops[randInt(0, opCount-1)]);
-    }
     let target = 24;
     let nums = [randInt(1,24), randInt(1,24), randInt(1,24), randInt(1,24)];
-    // Ensure at least one double digit (10-24)
     if (!nums.some(n => n >= 10)) continue;
-    let solution = find24Solution(nums, chosenOps, target);
+    let solution = find24Solution(nums, allowedOps, target);
     if (solution) {
       return {numbers: nums, solution: solution};
     }
   }
-  // Fallback: force at least one double digit
   let fallback = [randInt(10,24), randInt(1,24), randInt(1,24), randInt(1,24)];
   return {numbers: fallback, solution: null};
 }
@@ -383,19 +371,16 @@ if (doubleDigitsBtn) {
 function generateSolvableIntegers(difficulty) {
   let ops = ['+', '-', '*', '/'];
   let opCount = {1: 1, 2: 2, 3: 3}[difficulty] || 2;
+  let allowedOps = ops.slice(0, opCount);
   let maxTries = 1000;
   for (let tries = 0; tries < maxTries; ++tries) {
-    let chosenOps = [];
-    for (let i = 0; i < 3; ++i) {
-      chosenOps.push(ops[randInt(0, opCount-1)]);
-    }
     let target = 24;
     let nums = [];
     while (nums.length < 4) {
       let n = randInt(-24, 24);
       if (n !== 0) nums.push(n);
     }
-    let solution = find24Solution(nums, chosenOps, target);
+    let solution = find24Solution(nums, allowedOps, target);
     if (solution) {
       return {numbers: nums, solution: solution};
     }
