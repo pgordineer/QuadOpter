@@ -855,4 +855,3 @@ if (dailyDatePill) {
     }, 0);
   };
 
-
