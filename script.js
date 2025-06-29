@@ -312,8 +312,10 @@ function renderSDG() {
     btn.style.textAlign = 'center';
     btn.style.margin = '0.2em';
     btn.disabled = roundFinished;
-    // Highlight if selected
-    if (sdgState.selected.length === 1 && sdgState.selected[0] === idx) btn.style.background = '#e3f2fd';
+    // Highlight if selected: add .selected class
+    if (sdgState.selected.length === 1 && sdgState.selected[0] === idx) {
+      btn.classList.add('selected');
+    }
     btn.onclick = function() {
       if (roundFinished) return;
       // If no number is selected and no pendingOp, select this as first operand
