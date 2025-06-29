@@ -849,13 +849,13 @@ footer {
   box-shadow: 0 1px 4px #1976d211;
   outline: none;
 }
-.sdg-btn:hover:not(:disabled), .sdg-op-btn:hover:not(:disabled),
-.sdg-btn:active:not(:disabled), .sdg-op-btn:active:not(:disabled) {
+.sdg-op-btn:hover:not(:disabled),
+.sdg-op-btn:active:not(:disabled) {
   background: #ffecb3 !important; /* yellow for active */
   color: #222 !important;
   border-color: #1976d2;
 }
-.sdg-btn:hover:not(:disabled), .sdg-op-btn:hover:not(:disabled) {
+.sdg-op-btn:hover:not(:disabled) {
   background: #90caf9 !important; /* blue for hover */
   color: #222 !important;
   border-color: #1976d2;
