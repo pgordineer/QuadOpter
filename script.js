@@ -21,6 +21,11 @@ function generateSolvableOperationsMode(difficulty) {
     { fn: x => x >= 0 ? Math.sqrt(x) : NaN, str: a => `√(${a})`, check: x => x >= 0 },
     { fn: x => Math.cbrt(x), str: a => `∛(${a})`, check: x => true }
   ];
+  // Shuffle expOps to randomize which special op is tried first
+  for (let i = expOps.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [expOps[i], expOps[j]] = [expOps[j], expOps[i]];
+  }
   // Try random sets, then for each, try all ways to apply one exp op at any step
   for (let tries = 0; tries < maxTries; ++tries) {
     let nums = [randInt(1,9), randInt(1,9), randInt(1,9), randInt(1,9)];
