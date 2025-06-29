@@ -173,7 +173,7 @@ function generateSolvableSingleDigits(difficulty) {
   for (let tries = 0; tries < maxTries; ++tries) {
     let target = 24;
     let nums = [randInt(1,9), randInt(1,9), randInt(1,9), randInt(1,9)];
-    let solution = find24StepwiseSolution(nums, allowedOps, target);
+    let solution = find24Solution(nums, allowedOps, target);
     if (solution) {
       return {numbers: nums, solution: solution};
     }
@@ -657,7 +657,7 @@ function generateSolvableDoubleDigits(difficulty) {
     let target = 24;
     let nums = [randInt(1,24), randInt(1,24), randInt(1,24), randInt(1,24)];
     if (!nums.some(n => n >= 10)) continue;
-    let solution = find24StepwiseSolution(nums, allowedOps, target);
+    let solution = find24Solution(nums, allowedOps, target);
     if (solution) {
       return {numbers: nums, solution: solution};
     }
@@ -692,7 +692,7 @@ function generateSolvableIntegers(difficulty) {
       let n = randInt(-24, 24);
       if (n !== 0) nums.push(n);
     }
-    let solution = find24StepwiseSolution(nums, allowedOps, target);
+    let solution = find24Solution(nums, allowedOps, target);
     if (solution) {
       return {numbers: nums, solution: solution};
     }
@@ -703,94 +703,6 @@ function generateSolvableIntegers(difficulty) {
     if (n !== 0) fallback.push(n);
   }
   return {numbers: fallback, solution: null};
-// Stepwise solution generator for 24 game (returns string with steps, or null)
-function find24StepwiseSolution(nums, allowedOps, target) {
-  // Try all permutations and op combinations, return stepwise string if found
-  function* permute(arr) {
-    if (arr.length === 1) yield arr;
-    else {
-      for (let i = 0; i < arr.length; ++i) {
-        let rest = arr.slice(0, i).concat(arr.slice(i+1));
-        for (let p of permute(rest)) yield [arr[i]].concat(p);
-      }
-    }
-  }
-  function* opCombos(ops, n) {
-    if (n === 0) yield [];
-    else {
-      for (let op of ops) {
-        for (let rest of opCombos(ops, n-1)) yield [op].concat(rest);
-      }
-    }
-  }
-  function uniqueOpCount(opsArr) {
-    return new Set(opsArr).size;
-  }
-  for (let perm of permute(nums)) {
-    for (let ops of opCombos(allowedOps, 3)) {
-      // Enforce operation diversity for Medium/Hard
-      let requireUniqueOps = 0;
-      if (allowedOps.length === 2) requireUniqueOps = 2; // Medium
-      if (allowedOps.length === 3) requireUniqueOps = 3; // Hard
-      if (requireUniqueOps > 0 && uniqueOpCount(ops) < requireUniqueOps) continue;
-      // Try all parenthesizations, record steps
-      let exprs = [
-        () => {
-          let s1 = `${perm[0]} ${ops[0]} ${perm[1]} = ${evalBinary(perm[0], ops[0], perm[1])}`;
-          let r1 = evalBinary(perm[0], ops[0], perm[1]);
-          let s2 = `${r1} ${ops[1]} ${perm[2]} = ${evalBinary(r1, ops[1], perm[2])}`;
-          let r2 = evalBinary(r1, ops[1], perm[2]);
-          let s3 = `${r2} ${ops[2]} ${perm[3]} = ${evalBinary(r2, ops[2], perm[3])}`;
-          let r3 = evalBinary(r2, ops[2], perm[3]);
-          return { result: r3, steps: [s1, s2, s3] };
-        },
-        () => {
-          let s1 = `${perm[1]} ${ops[1]} ${perm[2]} = ${evalBinary(perm[1], ops[1], perm[2])}`;
-          let r1 = evalBinary(perm[1], ops[1], perm[2]);
-          let s2 = `${perm[0]} ${ops[0]} ${r1} = ${evalBinary(perm[0], ops[0], r1)}`;
-          let r2 = evalBinary(perm[0], ops[0], r1);
-          let s3 = `${r2} ${ops[2]} ${perm[3]} = ${evalBinary(r2, ops[2], perm[3])}`;
-          let r3 = evalBinary(r2, ops[2], perm[3]);
-          return { result: r3, steps: [s1, s2, s3] };
-        },
-        () => {
-          let s1 = `${perm[1]} ${ops[1]} ${perm[2]} = ${evalBinary(perm[1], ops[1], perm[2])}`;
-          let r1 = evalBinary(perm[1], ops[1], perm[2]);
-          let s2 = `${r1} ${ops[2]} ${perm[3]} = ${evalBinary(r1, ops[2], perm[3])}`;
-          let r2 = evalBinary(r1, ops[2], perm[3]);
-          let s3 = `${perm[0]} ${ops[0]} ${r2} = ${evalBinary(perm[0], ops[0], r2)}`;
-          let r3 = evalBinary(perm[0], ops[0], r2);
-          return { result: r3, steps: [s1, s2, s3] };
-        },
-        () => {
-          let s1 = `${perm[2]} ${ops[2]} ${perm[3]} = ${evalBinary(perm[2], ops[2], perm[3])}`;
-          let r1 = evalBinary(perm[2], ops[2], perm[3]);
-          let s2 = `${perm[1]} ${ops[1]} ${r1} = ${evalBinary(perm[1], ops[1], r1)}`;
-          let r2 = evalBinary(perm[1], ops[1], r1);
-          let s3 = `${perm[0]} ${ops[0]} ${r2} = ${evalBinary(perm[0], ops[0], r2)}`;
-          let r3 = evalBinary(perm[0], ops[0], r2);
-          return { result: r3, steps: [s1, s2, s3] };
-        },
-        () => {
-          let s1 = `${perm[0]} ${ops[0]} ${perm[1]} = ${evalBinary(perm[0], ops[0], perm[1])}`;
-          let r1 = evalBinary(perm[0], ops[0], perm[1]);
-          let s2 = `${perm[2]} ${ops[2]} ${perm[3]} = ${evalBinary(perm[2], ops[2], perm[3])}`;
-          let r2 = evalBinary(perm[2], ops[2], perm[3]);
-          let s3 = `${r1} ${ops[1]} ${r2} = ${evalBinary(r1, ops[1], r2)}`;
-          let r3 = evalBinary(r1, ops[1], r2);
-          return { result: r3, steps: [s1, s2, s3] };
-        }
-      ];
-      for (let e of exprs) {
-        let { result, steps } = e();
-        if (Math.abs(result - target) < 1e-6 && isFinite(result)) {
-          return steps.join('<br>');
-        }
-      }
-    }
-  }
-  return null;
-}
 }
 
 function showIntegersMode() {
