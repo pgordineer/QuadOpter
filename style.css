@@ -861,27 +861,22 @@ footer {
   -webkit-tap-highlight-color: transparent !important;
 }
 
-/* Suppress all focus/active/hover highlight for operator buttons */
-.sdg-op-btn:focus,
+/* Operator buttons never show hover/active/focus highlight, only default or selected state */
+/* Remove all hover/active/focus for operator buttons */
+.sdg-op-btn:hover,
 .sdg-op-btn:active,
-.sdg-op-btn:focus-visible {
-  outline: none !important;
-  box-shadow: none !important;
-  background: #f0f4fa !important;
-  color: #1976d2 !important;
-  border-color: #1976d2 !important;
-}
+.sdg-op-btn:focus,
+.sdg-op-btn:focus-visible,
 .sdg-op-btn.no-hover:hover,
 .sdg-op-btn.no-hover:active,
 .sdg-op-btn.no-hover:focus,
 .sdg-op-btn.no-hover:focus-visible {
   background: inherit !important;
+  color: inherit !important;
   outline: none !important;
   box-shadow: none !important;
-  color: inherit !important;
   border-color: inherit !important;
   cursor: pointer !important;
-}
 }
 .sdg-btn:disabled, .sdg-op-btn:disabled {
   background: #eee;
