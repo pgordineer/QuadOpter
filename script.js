@@ -375,6 +375,11 @@ function renderSDG() {
         }
       }
     };
+    // Add touchstart handler to prevent sticky hover on mobile
+    btn.addEventListener('touchstart', function(e) {
+      btn.classList.add('no-hover');
+      setTimeout(() => btn.classList.remove('no-hover'), 400);
+    }, {passive:true});
     sdgNumbersDiv.appendChild(btn);
   });
   // Render ops (no parens)
@@ -492,10 +497,33 @@ function renderSDG() {
     sdgGiveUpBtn.disabled = roundFinished;
   }
 
-  // --- Fix: Remove focus from all number buttons after re-render to prevent mobile highlight bug ---
-  // Loop through all .sdg-btn buttons and blur them
+  // --- Aggressive fix: Remove .selected, blur, and toggle disabled to clear mobile highlight ---
   const allNumBtns = sdgNumbersDiv.querySelectorAll('.sdg-btn');
-  allNumBtns.forEach(btn => btn.blur());
+  allNumBtns.forEach(btn => {
+    btn.classList.remove('selected');
+    btn.blur();
+    // Toggle disabled to force browser to clear focus/active state
+    const wasDisabled = btn.disabled;
+    btn.disabled = true;
+    btn.disabled = wasDisabled;
+  });
+  // Now re-add .selected to the correct button if needed
+  if (sdgState.selected.length === 1) {
+    const idx = sdgState.selected[0];
+    // Find the button for this index (skip used)
+    let btnIdx = -1;
+    for (let i = 0, seen = 0; i < sdgState.numbers.length; ++i) {
+      if (sdgState.used[i]) continue;
+      if (i === idx) {
+        btnIdx = seen;
+        break;
+      }
+      seen++;
+    }
+    if (btnIdx !== -1 && allNumBtns[btnIdx]) {
+      allNumBtns[btnIdx].classList.add('selected');
+    }
+  }
 }
 
 function startSingleDigitsGame(numbers) {

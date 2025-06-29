@@ -1,3 +1,8 @@
+/* Prevent sticky hover on mobile by disabling hover when .no-hover is present */
+.sdg-btn.no-hover:hover {
+  background: inherit !important;
+  color: inherit !important;
+}
 /* Suppress mobile tap/active/focus highlight for number buttons */
 .sdg-btn {
   -webkit-tap-highlight-color: transparent;
