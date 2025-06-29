@@ -398,74 +398,76 @@ function renderSDG() {
   });
   sdgOpsDiv.appendChild(opsRow);
 
-  // Exponential operations row (active in operations mode)
-  const expRow = document.createElement('div');
-  expRow.style.display = 'flex';
-  expRow.style.justifyContent = 'center';
-  expRow.style.gap = '0.5em';
-  expRow.style.width = '100%';
-  expRow.style.flexWrap = 'wrap';
-  // Button labels: x², x³, √x, ∛x
-  const expOps = [
-    { label: 'x<sup>2</sup>', title: 'Square (x²)', op: 'square' },
-    { label: 'x<sup>3</sup>', title: 'Cube (x³)', op: 'cube' },
-    { label: '√x', title: 'Square Root (√x)', op: 'sqrt' },
-    { label: '∛x', title: 'Cube Root (∛x)', op: 'cbrt' }
-  ];
-  expOps.forEach(exp => {
-    const btn = document.createElement('button');
-    btn.innerHTML = exp.label;
-    btn.title = exp.title;
-    btn.className = 'sdg-op-btn';
-    btn.style.flex = '1 1 0';
-    btn.style.minWidth = '2.5em';
-    btn.style.maxWidth = '5em';
-    btn.style.margin = '0.2em';
-    // Enable only in operations mode, if one number is selected, not finished, and exp not used
-    btn.disabled = roundFinished || currentMode !== 'operations' || sdgState.selected.length !== 1 || sdgState.expUsed;
-    btn.onclick = function() {
-      if (btn.disabled) return;
-      // Only allow if one number is selected and not used exp yet
-      const idx = sdgState.selected[0];
-      let a = sdgState.numbers[idx];
-      let result, stepStr;
-      if (exp.op === 'square') {
-        result = a * a;
-        stepStr = `${a}² = ${result}`;
-      } else if (exp.op === 'cube') {
-        result = a * a * a;
-        stepStr = `${a}³ = ${result}`;
-      } else if (exp.op === 'sqrt') {
-        if (a < 0) {
-          sdgFeedbackDiv.textContent = '❌ Cannot sqrt negative!';
-          return;
+  // Exponential operations row: only show in operations mode
+  if (currentMode === 'operations') {
+    const expRow = document.createElement('div');
+    expRow.style.display = 'flex';
+    expRow.style.justifyContent = 'center';
+    expRow.style.gap = '0.5em';
+    expRow.style.width = '100%';
+    expRow.style.flexWrap = 'wrap';
+    // Button labels: x², x³, √x, ∛x
+    const expOps = [
+      { label: 'x<sup>2</sup>', title: 'Square (x²)', op: 'square' },
+      { label: 'x<sup>3</sup>', title: 'Cube (x³)', op: 'cube' },
+      { label: '√x', title: 'Square Root (√x)', op: 'sqrt' },
+      { label: '∛x', title: 'Cube Root (∛x)', op: 'cbrt' }
+    ];
+    expOps.forEach(exp => {
+      const btn = document.createElement('button');
+      btn.innerHTML = exp.label;
+      btn.title = exp.title;
+      btn.className = 'sdg-op-btn';
+      btn.style.flex = '1 1 0';
+      btn.style.minWidth = '2.5em';
+      btn.style.maxWidth = '5em';
+      btn.style.margin = '0.2em';
+      // Enable only if one number is selected, not finished, and exp not used
+      btn.disabled = roundFinished || sdgState.selected.length !== 1 || sdgState.expUsed;
+      btn.onclick = function() {
+        if (btn.disabled) return;
+        // Only allow if one number is selected and not used exp yet
+        const idx = sdgState.selected[0];
+        let a = sdgState.numbers[idx];
+        let result, stepStr;
+        if (exp.op === 'square') {
+          result = a * a;
+          stepStr = `${a}² = ${result}`;
+        } else if (exp.op === 'cube') {
+          result = a * a * a;
+          stepStr = `${a}³ = ${result}`;
+        } else if (exp.op === 'sqrt') {
+          if (a < 0) {
+            sdgFeedbackDiv.textContent = '❌ Cannot sqrt negative!';
+            return;
+          }
+          result = Math.sqrt(a);
+          stepStr = `√${a} = ${result}`;
+        } else if (exp.op === 'cbrt') {
+          result = Math.cbrt(a);
+          stepStr = `∛${a} = ${result}`;
         }
-        result = Math.sqrt(a);
-        stepStr = `√${a} = ${result}`;
-      } else if (exp.op === 'cbrt') {
-        result = Math.cbrt(a);
-        stepStr = `∛${a} = ${result}`;
-      }
-      // Mark used
-      sdgState.used[idx] = true;
-      // Add result to numbers at the start (left-most)
-      sdgState.numbers.unshift(result);
-      sdgState.used.unshift(false);
-      // Record step
-      sdgState.steps.push(stepStr);
-      // Mark exp op as used
-      sdgState.expUsed = true;
-      sdgState.expStep = { idx, op: exp.op, input: a, result };
-      // Reset selection and op
-      sdgState.selected = [];
-      sdgState.pendingOp = null;
-      renderSDG();
-    };
-    // Gray out if exp op has been used
-    if (sdgState.expUsed) btn.style.opacity = '0.5';
-    expRow.appendChild(btn);
-  });
-  sdgOpsDiv.appendChild(expRow);
+        // Mark used
+        sdgState.used[idx] = true;
+        // Add result to numbers at the start (left-most)
+        sdgState.numbers.unshift(result);
+        sdgState.used.unshift(false);
+        // Record step
+        sdgState.steps.push(stepStr);
+        // Mark exp op as used
+        sdgState.expUsed = true;
+        sdgState.expStep = { idx, op: exp.op, input: a, result };
+        // Reset selection and op
+        sdgState.selected = [];
+        sdgState.pendingOp = null;
+        renderSDG();
+      };
+      // Gray out if exp op has been used
+      if (sdgState.expUsed) btn.style.opacity = '0.5';
+      expRow.appendChild(btn);
+    });
+    sdgOpsDiv.appendChild(expRow);
+  }
   // Render steps
   sdgExprDiv.innerHTML = sdgState.steps.map(s => `<div>${s}</div>`).join('');
   // Show solution if round is finished and correct
@@ -555,23 +557,23 @@ sdgNextBtn.onclick = function() {
 
 
 sdgGiveUpBtn.onclick = function() {
+  // Mark round as finished first so renderSDG disables UI
+  sdgState.finished = true;
+  // Always show solution and message
+  let html = '';
   if (currentSolution) {
-    // Split steps on <br> and render each on its own row
     const steps = currentSolution.split('<br>');
-    let html = `<div style='color:#c00;'><div>Solution:</div>`;
+    html = `<div style='color:#c00;'><div>Solution:</div>`;
     for (const step of steps) {
       html += `<div><b>${step}</b></div>`;
     }
     html += `</div>`;
-    sdgFeedbackDiv.innerHTML = html;
   } else {
-    sdgFeedbackDiv.innerHTML = `<span style='color:#c00;'>Solution: <b>No solution found</b></span>`;
+    html = `<span style='color:#c00;'>Solution: <b>No solution found</b></span>`;
   }
+  sdgFeedbackDiv.innerHTML = html;
   sdgNextBtn.style.display = '';
   sdgGiveUpBtn.style.display = 'none';
-  // Mark round as finished
-  sdgState.finished = true;
-  renderSDG();
 };
 
 // Undo button logic (restore correct state)
