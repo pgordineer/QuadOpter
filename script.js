@@ -1,6 +1,47 @@
 // --- Prevent double-tap zoom on mobile browsers ---
 // This disables double-tap zoom for all buttons and the main game area
 // (Best effort: some browsers may require viewport meta tag changes in HTML)
+// Utility: add both click and touchend listeners with deduplication
+function addFastButtonListener(el, handler) {
+  let lastTouch = 0;
+  el.addEventListener('touchend', function(e) {
+    lastTouch = Date.now();
+    handler.call(this, e);
+  }, {passive: false});
+  el.addEventListener('click', function(e) {
+    // Ignore click if it immediately follows a touch
+    if (Date.now() - lastTouch < 500) return;
+    handler.call(this, e);
+  });
+}
+
+// Patch: use addFastButtonListener for all .sdg-btn and .sdg-op-btn
+function patchButtonListeners() {
+  document.querySelectorAll('.sdg-btn, .sdg-op-btn').forEach(btn => {
+    // Remove any existing click/touchend listeners if needed (not shown here)
+    const old = btn._fastHandler;
+    if (old) {
+      btn.removeEventListener('click', old.click, true);
+      btn.removeEventListener('touchend', old.touchend, true);
+    }
+    // Wrap the original handler
+    const handler = btn.onclick || (()=>{});
+    btn.onclick = null;
+    addFastButtonListener(btn, handler);
+    btn._fastHandler = {
+      click: handler,
+      touchend: handler
+    };
+  });
+}
+
+// Call patchButtonListeners after DOM is ready and after any dynamic button creation
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', patchButtonListeners);
+} else {
+  patchButtonListeners();
+}
+// If you dynamically create buttons elsewhere, call patchButtonListeners() after.
 let lastTouchEnd = 0;
 document.addEventListener('touchend', function(event) {
   const now = Date.now();
