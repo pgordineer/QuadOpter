@@ -558,8 +558,16 @@ sdgSubmitBtn.onclick = function() {
     result = null;
   }
   if (Math.abs(result - 24) < 1e-6) {
-    sdgFeedbackDiv.textContent = '🎉 Correct!';
-    sdgFeedbackDiv.style.color = '#1976d2';
+    let html = `<div style='color:#1976d2;'><div>🎉 Correct!</div>`;
+    if (currentSolution) {
+      const steps = currentSolution.split('<br>');
+      html += `<div style='margin-top:0.5em;'>Solution:</div>`;
+      for (const step of steps) {
+        html += `<div><b>${step}</b></div>`;
+      }
+    }
+    html += `</div>`;
+    sdgFeedbackDiv.innerHTML = html;
     sdgNextBtn.style.display = '';
     sdgSubmitBtn.style.display = 'none';
     sdgGiveUpBtn.style.display = 'none';
@@ -573,7 +581,18 @@ sdgSubmitBtn.onclick = function() {
 };
 
 sdgGiveUpBtn.onclick = function() {
-  sdgFeedbackDiv.innerHTML = `<span style='color:#c00;'>Solution: <b>${currentSolution || 'No solution found'}</b></span>`;
+  if (currentSolution) {
+    // Split steps on <br> and render each on its own row
+    const steps = currentSolution.split('<br>');
+    let html = `<div style='color:#c00;'><div>Solution:</div>`;
+    for (const step of steps) {
+      html += `<div><b>${step}</b></div>`;
+    }
+    html += `</div>`;
+    sdgFeedbackDiv.innerHTML = html;
+  } else {
+    sdgFeedbackDiv.innerHTML = `<span style='color:#c00;'>Solution: <b>No solution found</b></span>`;
+  }
   sdgNextBtn.style.display = '';
   sdgSubmitBtn.style.display = 'none';
   sdgGiveUpBtn.style.display = 'none';
