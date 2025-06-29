@@ -158,9 +158,6 @@ function find24WithOneExp(nums, allowedOps, expOps, target) {
     }
   }
   return null;
-}
-}
-
 function showVariablesMode() {
   currentMode = 'variables';
   // TODO: Implement Variables mode logic
@@ -723,9 +720,8 @@ function generateSolvableIntegers(difficulty) {
     let n = randInt(-24, 24);
     if (n !== 0) fallback.push(n);
   }
-  return {numbers: fallback, solution: null};
+    return {numbers: fallback, solution: null};
 }
-
 function showIntegersMode() {
   currentMode = 'integers';
   let {numbers, solution} = generateSolvableIntegers(currentDifficulty);
@@ -873,4 +869,3 @@ if (dailyDatePill) {
       cal.style.zIndex = 1001;
     }, 0);
   };
-}
