@@ -127,46 +127,40 @@ let sdgState = {
 
 function resetSDGState(numbers) {
   sdgState.numbers = numbers.slice();
-  sdgState.used = [false, false, false, false];
-  sdgState.ops = [];
-  sdgState.expr = [];
-  sdgState.step = 0;
+  sdgState.used = Array(numbers.length).fill(false);
+  sdgState.selected = []; // indices of selected numbers
+  sdgState.pendingOp = null;
+  sdgState.steps = [];
   sdgState.finished = false;
 }
 
 function renderSDG() {
-  // Use sdgState.finished to track round completion
   const roundFinished = sdgState.finished;
-  // Render numbers
+  // Render numbers (stepwise merge)
   sdgNumbersDiv.innerHTML = '';
   sdgState.numbers.forEach((num, idx) => {
+    if (sdgState.used[idx]) return;
     const btn = document.createElement('button');
     btn.textContent = num;
     btn.className = 'sdg-btn';
-    btn.style.minWidth = '3.2em'; // wider for negative numbers
+    btn.style.minWidth = '3.2em';
     btn.style.maxWidth = '5em';
     btn.style.textAlign = 'center';
     btn.style.margin = '0.2em';
-    btn.disabled = sdgState.used[idx] || roundFinished;
+    btn.disabled = roundFinished;
+    // Highlight if selected
+    if (sdgState.selected.includes(idx)) btn.style.background = '#e3f2fd';
     btn.onclick = function() {
-      if (sdgState.step % 2 === 0 && !sdgState.used[idx] && !roundFinished) {
-        sdgState.expr.push(num);
-        sdgState.used[idx] = true;
-        sdgState.step++;
+      if (roundFinished) return;
+      if (sdgState.selected.length < 2 && !sdgState.selected.includes(idx)) {
+        sdgState.selected.push(idx);
         renderSDG();
       }
     };
     sdgNumbersDiv.appendChild(btn);
   });
-  // Render ops in two rows: main ops and parentheses
+  // Render ops (no parens)
   sdgOpsDiv.innerHTML = '';
-  // Make sdgOpsDiv a flex column to force rows to stack
-  sdgOpsDiv.style.display = 'flex';
-  sdgOpsDiv.style.flexDirection = 'column';
-  sdgOpsDiv.style.alignItems = 'center';
-  sdgOpsDiv.style.width = '100%';
-
-  // First row: + - × ÷
   const opsRow = document.createElement('div');
   opsRow.style.display = 'flex';
   opsRow.style.justifyContent = 'center';
@@ -181,69 +175,64 @@ function renderSDG() {
     btn.style.minWidth = '2.5em';
     btn.style.maxWidth = '5em';
     btn.style.margin = '0.2em';
-    btn.disabled = (sdgState.step % 2 !== 1) || roundFinished;
+    // Enable only if two numbers are selected and no pending op
+    btn.disabled = roundFinished || sdgState.selected.length !== 2;
     btn.onclick = function() {
-      if (sdgState.step % 2 === 1 && !roundFinished) {
-        sdgState.expr.push(op);
-        sdgState.step++;
-        renderSDG();
+      if (roundFinished || sdgState.selected.length !== 2) return;
+      sdgState.pendingOp = op;
+      // Perform the operation
+      const [i, j] = sdgState.selected;
+      const a = sdgState.numbers[i];
+      const b = sdgState.numbers[j];
+      let result;
+      if (op === '+') result = a + b;
+      else if (op === '-') result = a - b;
+      else if (op === '×') result = a * b;
+      else if (op === '÷') {
+        if (b === 0) {
+          sdgFeedbackDiv.textContent = '❌ Division by zero!';
+          return;
+        }
+        result = a / b;
       }
+      // Mark used
+      sdgState.used[i] = true;
+      sdgState.used[j] = true;
+      // Add result to numbers
+      sdgState.numbers.push(result);
+      sdgState.used.push(false);
+      // Record step
+      sdgState.steps.push(`${a} ${op} ${b} = ${result}`);
+      // Reset selection and op
+      sdgState.selected = [];
+      sdgState.pendingOp = null;
+      // Check for win
+      if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1 && Math.abs(result - 24) < 1e-6) {
+        sdgState.finished = true;
+        sdgFeedbackDiv.textContent = '🎉 Correct!';
+        sdgFeedbackDiv.style.color = '#1976d2';
+        sdgNextBtn.style.display = '';
+        sdgSubmitBtn.style.display = 'none';
+        sdgGiveUpBtn.style.display = 'none';
+      } else if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
+        sdgState.finished = true;
+        sdgFeedbackDiv.textContent = '❌ Not 24!';
+        sdgFeedbackDiv.style.color = '#c00';
+        sdgNextBtn.style.display = '';
+        sdgSubmitBtn.style.display = 'none';
+        sdgGiveUpBtn.style.display = 'none';
+      } else {
+        sdgFeedbackDiv.textContent = '';
+      }
+      renderSDG();
     };
     opsRow.appendChild(btn);
   });
   sdgOpsDiv.appendChild(opsRow);
-
-  // Second row: ( )
-  const parenRow = document.createElement('div');
-  parenRow.style.display = 'flex';
-  parenRow.style.justifyContent = 'center';
-  parenRow.style.gap = '0.5em';
-  parenRow.style.width = '100%';
-  parenRow.style.marginTop = '0.3em';
-  ['(', ')'].forEach(op => {
-    const btn = document.createElement('button');
-    btn.textContent = op;
-    btn.className = 'sdg-op-btn';
-    btn.style.flex = '1 1 0';
-    btn.style.minWidth = '2.5em';
-    btn.style.maxWidth = '5em';
-    btn.style.margin = '0.2em';
-    btn.disabled = roundFinished;
-    btn.onclick = function() {
-      if (!roundFinished) {
-        sdgState.expr.push(op);
-        renderSDG();
-      }
-    };
-    parenRow.appendChild(btn);
-  });
-  sdgOpsDiv.appendChild(parenRow);
-  // Render expression (show parentheses as entered)
-  sdgExprDiv.textContent = sdgState.expr.join(' ');
-
-  // Helper: check if all numbers are used
-  function allNumbersUsed() {
-    return sdgState.used.every(Boolean);
-  }
-  // Helper: check if parentheses are balanced
-  function parensBalanced(expr) {
-    let count = 0;
-    for (let x of expr) {
-      if (x === '(') count++;
-      if (x === ')') count--;
-      if (count < 0) return false;
-    }
-    return count === 0;
-  }
-  // Helper: check if last token is a number
-  function endsWithNumber(expr) {
-    if (expr.length === 0) return false;
-    return typeof expr[expr.length - 1] === 'number';
-  }
-  // Enable submit if all numbers used, parens balanced, ends with number, and not finished
-  const canSubmit = allNumbersUsed() && parensBalanced(sdgState.expr) && endsWithNumber(sdgState.expr) && !roundFinished;
-  sdgSubmitBtn.disabled = !canSubmit;
-  // Enable give up if not finished
+  // Render steps
+  sdgExprDiv.innerHTML = sdgState.steps.map(s => `<div>${s}</div>`).join('');
+  // Hide submit, enable give up if not finished
+  sdgSubmitBtn.style.display = 'none';
   sdgGiveUpBtn.disabled = roundFinished;
 }
 
