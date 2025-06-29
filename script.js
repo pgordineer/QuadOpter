@@ -354,20 +354,8 @@ function renderSDG() {
         // Check for win
         if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1 && Math.abs(result - 24) < 1e-6) {
           sdgState.finished = true;
-          sdgFeedbackDiv.textContent = '🎉 Correct!';
-          sdgFeedbackDiv.style.color = '#1976d2';
-          sdgNextBtn.style.display = '';
-          sdgSubmitBtn.style.display = 'none';
-          sdgGiveUpBtn.style.display = 'none';
         } else if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
           sdgState.finished = true;
-          sdgFeedbackDiv.textContent = '❌ Not 24!';
-          sdgFeedbackDiv.style.color = '#c00';
-          sdgNextBtn.style.display = '';
-          sdgSubmitBtn.style.display = 'none';
-          sdgGiveUpBtn.style.display = 'none';
-        } else {
-          sdgFeedbackDiv.textContent = '';
         }
         renderSDG();
       }
@@ -481,9 +469,30 @@ function renderSDG() {
   sdgOpsDiv.appendChild(expRow);
   // Render steps
   sdgExprDiv.innerHTML = sdgState.steps.map(s => `<div>${s}</div>`).join('');
-  // Hide submit, enable give up if not finished
-  sdgSubmitBtn.style.display = 'none';
-  sdgGiveUpBtn.disabled = roundFinished;
+  // Show solution if round is finished and correct
+  if (sdgState.finished && sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1 && Math.abs(sdgState.numbers.find((n, i) => !sdgState.used[i]) - 24) < 1e-6) {
+    let html = `<div style='color:#1976d2;'><div>🎉 Correct!</div>`;
+    if (currentSolution) {
+      const steps = currentSolution.split('<br>');
+      html += `<div style='margin-top:0.5em;'>Solution:</div>`;
+      for (const step of steps) {
+        html += `<div><b>${step}</b></div>`;
+      }
+    }
+    html += `</div>`;
+    sdgFeedbackDiv.innerHTML = html;
+    sdgNextBtn.style.display = '';
+    sdgGiveUpBtn.style.display = 'none';
+  } else if (sdgState.finished && sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
+    sdgFeedbackDiv.textContent = '❌ Not 24!';
+    sdgFeedbackDiv.style.color = '#c00';
+    sdgNextBtn.style.display = '';
+    sdgGiveUpBtn.style.display = 'none';
+  } else {
+    // Hide give up if finished, otherwise enable/disable
+    sdgFeedbackDiv.textContent = '';
+    sdgGiveUpBtn.disabled = roundFinished;
+  }
 }
 
 function startSingleDigitsGame(numbers) {
@@ -493,7 +502,6 @@ function startSingleDigitsGame(numbers) {
   singleDigitsGameDiv.style.display = '';
   mainMenuDiv.style.display = 'none';
   sdgNextBtn.style.display = 'none';
-  sdgSubmitBtn.style.display = '';
   sdgGiveUpBtn.style.display = '';
   sdgGiveUpBtn.disabled = false;
 }
@@ -546,39 +554,6 @@ sdgNextBtn.onclick = function() {
   showNextPuzzle();
 };
 
-sdgSubmitBtn.onclick = function() {
-  // Evaluate the built expression, allowing parentheses
-  let expr = sdgState.expr.slice();
-  // Replace × and ÷ with * and /
-  let evalExpr = expr.map(x => x === '×' ? '*' : x === '÷' ? '/' : x).join(' ');
-  let result = null;
-  try {
-    result = eval(evalExpr);
-  } catch (e) {
-    result = null;
-  }
-  if (Math.abs(result - 24) < 1e-6) {
-    let html = `<div style='color:#1976d2;'><div>🎉 Correct!</div>`;
-    if (currentSolution) {
-      const steps = currentSolution.split('<br>');
-      html += `<div style='margin-top:0.5em;'>Solution:</div>`;
-      for (const step of steps) {
-        html += `<div><b>${step}</b></div>`;
-      }
-    }
-    html += `</div>`;
-    sdgFeedbackDiv.innerHTML = html;
-    sdgNextBtn.style.display = '';
-    sdgSubmitBtn.style.display = 'none';
-    sdgGiveUpBtn.style.display = 'none';
-    // Mark round as finished
-    sdgState.finished = true;
-    renderSDG();
-  } else {
-    sdgFeedbackDiv.textContent = '❌ Try again!';
-    sdgFeedbackDiv.style.color = '#c00';
-  }
-};
 
 sdgGiveUpBtn.onclick = function() {
   if (currentSolution) {
@@ -594,7 +569,6 @@ sdgGiveUpBtn.onclick = function() {
     sdgFeedbackDiv.innerHTML = `<span style='color:#c00;'>Solution: <b>No solution found</b></span>`;
   }
   sdgNextBtn.style.display = '';
-  sdgSubmitBtn.style.display = 'none';
   sdgGiveUpBtn.style.display = 'none';
   // Mark round as finished
   sdgState.finished = true;
@@ -666,7 +640,6 @@ sdgUndoBtn.onclick = function() {
   sdgState.finished = false;
   sdgFeedbackDiv.textContent = '';
   sdgNextBtn.style.display = 'none';
-  sdgSubmitBtn.style.display = 'none';
   sdgGiveUpBtn.style.display = '';
   renderSDG();
 };
