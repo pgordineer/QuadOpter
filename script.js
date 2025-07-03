@@ -463,6 +463,81 @@ function generateVariablesModePuzzle() {
         display: '(x²+2)/(y²)',
         evalFn: (x, y) => (y !== 0 ? (x * x + 2) / (y * y) : NaN)
       };
+    },
+    // New templates below:
+    // (2x+3y)
+    () => {
+      let a = randInt(2, 3), b = randInt(2, 4);
+      return {
+        display: `${a}x+${b}y`,
+        evalFn: (x, y) => a * x + b * y
+      };
+    },
+    // (x-y)^2
+    () => {
+      return {
+        display: '(x-y)²',
+        evalFn: (x, y) => (x - y) * (x - y)
+      };
+    },
+    // (y+4)^2-3
+    () => {
+      let d = randInt(2, 5);
+      return {
+        display: `(y+4)²-${d}`,
+        evalFn: (x, y) => (y + 4) * (y + 4) - d
+      };
+    },
+    // (x+1)(y-1)
+    () => {
+      return {
+        display: '(x+1)(y-1)',
+        evalFn: (x, y) => (x + 1) * (y - 1)
+      };
+    },
+    // (x^3-y^3)/x
+    () => {
+      return {
+        display: '(x³-y³)/x',
+        evalFn: (x, y) => (x !== 0 ? (x * x * x - y * y * y) / x : NaN)
+      };
+    },
+    // (2x^2+3y^2)
+    () => {
+      let a = randInt(2, 3), b = randInt(2, 4);
+      return {
+        display: `${a}x²+${b}y²`,
+        evalFn: (x, y) => a * x * x + b * y * y
+      };
+    },
+    // (x+y+3)
+    () => {
+      let d = randInt(2, 6);
+      return {
+        display: `x+y+${d}`,
+        evalFn: (x, y) => x + y + d
+      };
+    },
+    // (x^2+y^2)/2
+    () => {
+      return {
+        display: '(x²+y²)/2',
+        evalFn: (x, y) => (x * x + y * y) / 2
+      };
+    },
+    // (3x-2y)+5
+    () => {
+      return {
+        display: '(3x-2y)+5',
+        evalFn: (x, y) => (3 * x - 2 * y) + 5
+      };
+    },
+    // (x/y)+4
+    () => {
+      return {
+        display: '(x/y)+4',
+        evalFn: (x, y) => (y !== 0 ? (x / y) + 4 : NaN)
+      };
     }
   ];
   let maxTries = 10000;
