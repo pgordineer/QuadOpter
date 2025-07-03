@@ -1,3 +1,75 @@
+// --- Custom Modal Dialog for Variable Input ---
+function showVarInputDialog(varName, currentValue, callback) {
+  // Remove any existing dialog
+  let old = document.getElementById('var-input-modal');
+  if (old) old.remove();
+  // Create modal elements
+  const modal = document.createElement('div');
+  modal.id = 'var-input-modal';
+  modal.className = 'sdg-modal-bg';
+  // Dialog box
+  const box = document.createElement('div');
+  box.className = 'sdg-modal-box';
+  // Title
+  const title = document.createElement('div');
+  title.className = 'sdg-modal-title';
+  title.textContent = `Set ${varName}`;
+  box.appendChild(title);
+  // Input
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.min = -24;
+  input.max = 24;
+  input.step = 1;
+  input.value = currentValue !== null && currentValue !== undefined ? currentValue : '';
+  input.className = 'sdg-modal-input';
+  box.appendChild(input);
+  // Error message
+  const err = document.createElement('div');
+  err.className = 'sdg-modal-error';
+  box.appendChild(err);
+  // Buttons
+  const btnRow = document.createElement('div');
+  btnRow.className = 'sdg-modal-btn-row';
+  // OK
+  const okBtn = document.createElement('button');
+  okBtn.textContent = 'OK';
+  okBtn.className = 'sdg-op-btn sdg-modal-btn';
+  okBtn.onclick = function() {
+    let val = input.value.trim();
+    if (!/^[-]?\d{1,2}$/.test(val)) {
+      err.textContent = 'Enter integer -24 to 24.';
+      return;
+    }
+    let n = parseInt(val, 10);
+    if (n < -24 || n > 24) {
+      err.textContent = 'Enter integer -24 to 24.';
+      return;
+    }
+    modal.remove();
+    callback(n);
+  };
+  // Cancel
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.className = 'sdg-op-btn sdg-modal-btn';
+  cancelBtn.onclick = function() {
+    modal.remove();
+    callback(null);
+  };
+  btnRow.appendChild(okBtn);
+  btnRow.appendChild(cancelBtn);
+  box.appendChild(btnRow);
+  // Keyboard events
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') okBtn.click();
+    if (e.key === 'Escape') cancelBtn.click();
+  });
+  // Focus input
+  setTimeout(() => { input.focus(); input.select(); }, 50);
+  modal.appendChild(box);
+  document.body.appendChild(modal);
+}
 // --- Prevent double-tap zoom on mobile browsers ---
 // This disables double-tap zoom for all buttons and the main game area
 // (Best effort: some browsers may require viewport meta tag changes in HTML)
@@ -234,18 +306,109 @@ function showVariablesMode() {
   currentMode = 'variables';
   let { numbers, exprObj } = generateVariablesModePuzzle();
   currentNumbers = numbers;
-  currentSolution = null; // Not used for variables mode yet
+  // Generate a solution for variables mode
+  currentSolution = generateVariablesModeSolution(numbers, exprObj);
   startVariablesGame(numbers, exprObj);
+}
+// Generate a stepwise solution for Variables mode
+function generateVariablesModeSolution(numbers, exprObj) {
+  // Try all integer values for x and y in range -24 to 24
+  // Try all permutations of the 3 numbers and the expression as the 4th operand
+  let nums = numbers.slice();
+  let target = 24;
+  // Try all x and y values
+  for (let x = -24; x <= 24; ++x) {
+    for (let y = -24; y <= 24; ++y) {
+      let exprVal;
+      try {
+        exprVal = exprObj.evalFn(x, y);
+      } catch (e) { continue; }
+      if (exprVal === null || isNaN(exprVal) || !isFinite(exprVal)) continue;
+      // Try all permutations of the 3 numbers
+      function* permute(arr) {
+        if (arr.length === 1) yield arr;
+        else {
+          for (let i = 0; i < arr.length; ++i) {
+            let rest = arr.slice(0, i).concat(arr.slice(i+1));
+            for (let p of permute(rest)) yield [arr[i]].concat(p);
+          }
+        }
+      }
+      for (let perm of permute(nums)) {
+        // Try all positions for the exprVal (as 1st, 2nd, 3rd, or 4th operand)
+        for (let pos = 0; pos < 4; ++pos) {
+          let operands = perm.slice();
+          operands.splice(pos, 0, exprVal);
+          // Try all op combos
+          let ops = ['+', '-', '*', '/'];
+          function* opCombos(ops, n) {
+            if (n === 0) yield [];
+            else {
+              for (let op of ops) {
+                for (let rest of opCombos(ops, n-1)) yield [op].concat(rest);
+              }
+            }
+          }
+          for (let opSet of opCombos(ops, 3)) {
+            // Try all parenthesizations, build stepwise solution
+            // 1. ((a op0 b) op1 c) op2 d
+            let a = operands[0], b = operands[1], c = operands[2], d = operands[3];
+            let s1 = evalVarStep(a, opSet[0], b);
+            if (!s1) continue;
+            let s2 = evalVarStep(s1.res, opSet[1], c);
+            if (!s2) continue;
+            let s3 = evalVarStep(s2.res, opSet[2], d);
+            if (!s3) continue;
+            if (Math.abs(s3.res - target) < 1e-6 && isFinite(s3.res)) {
+              // Build stepwise solution
+              let steps = [];
+              // Add variable assignments
+              if (/x/.test(exprObj.display)) steps.push(`X = ${x}`);
+              if (/y/.test(exprObj.display)) steps.push(`Y = ${y}`);
+              // Show the value of the expression
+              let exprLabel = exprObj.display.replace(/x/g, x).replace(/y/g, y);
+              let exprStep = `${exprObj.display} = ${exprVal}`;
+              // Find which operand is the expr
+              let exprIdx = operands.indexOf(exprVal);
+              let opLabels = perm.slice();
+              opLabels.splice(exprIdx, 0, `[${exprObj.display}]`);
+              // Build stepwise with labels
+              let labelA = exprIdx === 0 ? `[${exprObj.display}]` : operands[0];
+              let labelB = exprIdx === 1 ? `[${exprObj.display}]` : operands[1];
+              let labelC = exprIdx === 2 ? `[${exprObj.display}]` : operands[2];
+              let labelD = exprIdx === 3 ? `[${exprObj.display}]` : operands[3];
+              let s1str = `${labelA} ${opSet[0]} ${labelB} = ${s1.res}`;
+              let s2str = `${s1.res} ${opSet[1]} ${labelC} = ${s2.res}`;
+              let s3str = `${s2.res} ${opSet[2]} ${labelD} = ${s3.res}`;
+              steps.push(exprStep);
+              steps.push(s1str);
+              steps.push(s2str);
+              steps.push(s3str);
+              return steps.join('<br>');
+            }
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function evalVarStep(a, op, b) {
+  let res;
+  if (op === '+') res = a + b;
+  else if (op === '-') res = a - b;
+  else if (op === '*') res = a * b;
+  else if (op === '/') {
+    if (b === 0) return null;
+    res = a / b;
+  } else return null;
+  if (!isFinite(res)) return null;
+  return { res };
 }
 
 // Generate 3 random integers and 1 random algebraic expression
 function generateVariablesModePuzzle() {
-  // 3 random integers (nonzero, -24 to 24)
-  let nums = [];
-  while (nums.length < 3) {
-    let n = randInt(-24, 24);
-    if (n !== 0) nums.push(n);
-  }
   // Expression templates: each returns { display, evalFn }
   const templates = [
     // 2(x+y)
@@ -302,7 +465,28 @@ function generateVariablesModePuzzle() {
       };
     }
   ];
-  // Pick a random template
+  let maxTries = 10000;
+  for (let tries = 0; tries < maxTries; ++tries) {
+    // 3 random integers (nonzero, -24 to 24)
+    let nums = [];
+    while (nums.length < 3) {
+      let n = randInt(-24, 24);
+      if (n !== 0) nums.push(n);
+    }
+    // Pick a random template
+    const exprObj = templates[randInt(0, templates.length - 1)]();
+    // Check if this combination is solvable
+    let solution = generateVariablesModeSolution(nums, exprObj);
+    if (solution) {
+      return { numbers: nums, exprObj };
+    }
+  }
+  // Fallback: just return random
+  let nums = [];
+  while (nums.length < 3) {
+    let n = randInt(-24, 24);
+    if (n !== 0) nums.push(n);
+  }
   const exprObj = templates[randInt(0, templates.length - 1)]();
   return { numbers: nums, exprObj };
 }
@@ -444,6 +628,7 @@ function find24Solution(nums, allowedOps, target) {
   return null;
 }
 
+
 // --- Single Digits UI Logic ---
 const singleDigitsGameDiv = document.getElementById('single-digits-game');
 const sdgNumbersDiv = document.getElementById('sdg-numbers');
@@ -455,6 +640,14 @@ const sdgNextBtn = document.getElementById('sdg-next');
 const sdgGiveUpBtn = document.getElementById('sdg-giveup');
 const sdgUndoBtn = document.getElementById('sdg-undo');
 const mainMenuDiv = document.getElementById('main-menu');
+
+// Fix Back to Menu button for all modes
+if (sdgBackBtn) {
+  sdgBackBtn.onclick = function() {
+    singleDigitsGameDiv.style.display = 'none';
+    mainMenuDiv.style.display = '';
+  };
+}
 
 let sdgState = {
   numbers: [],
@@ -587,15 +780,23 @@ function renderSDG() {
     const exprBtn = document.createElement('button');
     exprBtn.className = 'sdg-btn sdg-expr-btn';
     exprBtn.disabled = roundFinished;
+    // Live simplification: substitute x/y if set, and show the simplified expression or value
     let exprStr = sdgState.algebraExpr.display;
+    let simplified = exprStr;
     let val = null;
+    // Try to substitute x and y if set
+    if (sdgState.xValue !== null || sdgState.yValue !== null) {
+      // Replace x and y in the display string for a live preview
+      simplified = exprStr.replace(/x/g, sdgState.xValue !== null ? `(${sdgState.xValue})` : 'x')
+                         .replace(/y/g, sdgState.yValue !== null ? `(${sdgState.yValue})` : 'y');
+    }
     if (sdgState.xValue !== null && sdgState.yValue !== null) {
       try {
         val = sdgState.algebraExpr.evalFn(sdgState.xValue, sdgState.yValue);
         if (isNaN(val) || !isFinite(val)) val = 'NaN';
       } catch (e) { val = 'NaN'; }
     }
-    exprBtn.innerHTML = val !== null ? `${exprStr}<br><b>${val}</b>` : exprStr;
+    exprBtn.innerHTML = val !== null ? `${simplified}<br><b>${val}</b>` : simplified;
     exprBtn.onclick = function() {
       if (roundFinished) return;
       if (sdgState.selected.length === 0 && !sdgState.pendingOp) {
@@ -758,33 +959,61 @@ function renderSDG() {
     const xBtn = document.createElement('button');
     xBtn.className = 'sdg-op-btn sdg-var-btn';
     xBtn.style.flex = '2 1 0';
+    // Always reset disabled and style for new round
+    xBtn.disabled = false;
+    xBtn.style.opacity = '';
+    xBtn.style.background = '';
+    xBtn.style.color = '';
+    xBtn.style.borderColor = '';
+    const exprUsesX = sdgState.algebraExpr && /x/.test(sdgState.algebraExpr.display);
     xBtn.innerHTML = `X = <b>${sdgState.xValue !== null ? sdgState.xValue : '?'}</b>`;
-    xBtn.onclick = function() {
-      let val = prompt('Enter value for X (integer -24 to 24):', sdgState.xValue !== null ? sdgState.xValue : '');
-      if (val === null) return;
-      val = val.trim();
-      if (!/^[-]?\d{1,2}$/.test(val)) { alert('Please enter an integer from -24 to 24.'); return; }
-      let n = parseInt(val, 10);
-      if (n < -24 || n > 24) { alert('Please enter an integer from -24 to 24.'); return; }
-      sdgState.xValue = n;
-      renderSDG();
-    };
+    if (!exprUsesX) {
+      xBtn.disabled = true;
+      xBtn.style.opacity = '0.45';
+      xBtn.style.background = '#eee';
+      xBtn.style.color = '#888';
+      xBtn.style.borderColor = '#ccc';
+    } else {
+      xBtn.onclick = function() {
+        showVarInputDialog('X', sdgState.xValue, function(val) {
+          if (val === null) return;
+          if (val === sdgState.xValue) return;
+          sdgState.steps.push(`X = ${val}`);
+          sdgState.xValue = val;
+          renderSDG();
+        });
+      };
+    }
     varRow.appendChild(xBtn);
     // Y button
     const yBtn = document.createElement('button');
     yBtn.className = 'sdg-op-btn sdg-var-btn';
     yBtn.style.flex = '2 1 0';
+    // Always reset disabled and style for new round
+    yBtn.disabled = false;
+    yBtn.style.opacity = '';
+    yBtn.style.background = '';
+    yBtn.style.color = '';
+    yBtn.style.borderColor = '';
+    const exprUsesY = sdgState.algebraExpr && /y/.test(sdgState.algebraExpr.display);
     yBtn.innerHTML = `Y = <b>${sdgState.yValue !== null ? sdgState.yValue : '?'}</b>`;
-    yBtn.onclick = function() {
-      let val = prompt('Enter value for Y (integer -24 to 24):', sdgState.yValue !== null ? sdgState.yValue : '');
-      if (val === null) return;
-      val = val.trim();
-      if (!/^[-]?\d{1,2}$/.test(val)) { alert('Please enter an integer from -24 to 24.'); return; }
-      let n = parseInt(val, 10);
-      if (n < -24 || n > 24) { alert('Please enter an integer from -24 to 24.'); return; }
-      sdgState.yValue = n;
-      renderSDG();
-    };
+    if (!exprUsesY) {
+      yBtn.disabled = true;
+      yBtn.style.opacity = '0.45';
+      yBtn.style.background = '#eee';
+      yBtn.style.color = '#888';
+      yBtn.style.borderColor = '#ccc';
+    } else {
+      yBtn.onclick = function() {
+        showVarInputDialog('Y', sdgState.yValue, function(val) {
+          if (val === null) return;
+          if (val === sdgState.yValue) return;
+          sdgState.steps.push(`Y = ${val}`);
+          sdgState.yValue = val;
+          renderSDG();
+        });
+      };
+    }
     varRow.appendChild(yBtn);
     sdgOpsDiv.appendChild(varRow);
   }
@@ -800,6 +1029,8 @@ function renderSDG() {
       for (const step of steps) {
         html += `<div><b>${step}</b></div>`;
       }
+    } else if (currentMode === 'variables') {
+      html += `<div style='margin-top:0.5em;'>No solution found</div>`;
     }
     html += `</div>`;
     sdgFeedbackDiv.innerHTML = html;
@@ -882,11 +1113,29 @@ sdgNextBtn.onclick = function() {
 };
 
 
+
 sdgGiveUpBtn.onclick = function() {
   // Mark round as finished first so renderSDG disables UI
   sdgState.finished = true;
   // Always show solution and message
   let html = '';
+  if (currentMode === 'variables') {
+    // Show solution for variables mode if available
+    if (currentSolution) {
+      const steps = currentSolution.split('<br>');
+      html = `<div style='color:#c00;'><div>Solution:</div>`;
+      for (const step of steps) {
+        html += `<div><b>${step}</b></div>`;
+      }
+      html += `</div>`;
+    } else {
+      html = `<span style='color:#c00;'>Solution: <b>No solution found</b></span>`;
+    }
+    sdgFeedbackDiv.innerHTML = html;
+    sdgNextBtn.style.display = '';
+    sdgGiveUpBtn.style.display = 'none';
+    return;
+  }
   if (currentSolution) {
     const steps = currentSolution.split('<br>');
     html = `<div style='color:#c00;'><div>Solution:</div>`;
@@ -928,43 +1177,71 @@ sdgUndoBtn.onclick = function() {
     return;
   }
   // Undo for variables mode: check if last step used the algebraic expression
-  if (currentMode === 'variables' && lastStep && lastStep.match(/\[.*\]/)) {
-    // Remove last number (the result)
-    const resultMatch = lastStep.match(/= (-?\d+(?:\.\d+)?)/);
-    let result = resultMatch ? Number(resultMatch[1]) : null;
-    let resultIdx = result !== null ? sdgState.numbers.lastIndexOf(result) : -1;
-    if (resultIdx !== -1) {
-      sdgState.numbers.splice(resultIdx, 1);
-      sdgState.used.splice(resultIdx, 1);
+  if (currentMode === 'variables') {
+    // Undo X= or Y= step
+    if (lastStep && lastStep.startsWith('X = ')) {
+      // Remove X value
+      sdgState.xValue = null;
+      sdgState.selected = [];
+      sdgState.pendingOp = null;
+      sdgState.finished = false;
+      sdgFeedbackDiv.textContent = '';
+      sdgNextBtn.style.display = 'none';
+      sdgGiveUpBtn.style.display = '';
+      renderSDG();
+      return;
     }
-    // If the step used a number and the expr, unmark the number as used and restore the expr
-    const numMatch = lastStep.match(/^(-?\d+(?:\.\d+)?) [+\-×÷] \[.*\]/);
-    if (numMatch) {
-      const a = Number(numMatch[1]);
-      // Find the most recent used number matching a
-      for (let i = sdgState.numbers.length - 1; i >= 0; --i) {
-        if (sdgState.used[i] && sdgState.numbers[i] === a) {
-          sdgState.used[i] = false;
-          break;
+    if (lastStep && lastStep.startsWith('Y = ')) {
+      // Remove Y value
+      sdgState.yValue = null;
+      sdgState.selected = [];
+      sdgState.pendingOp = null;
+      sdgState.finished = false;
+      sdgFeedbackDiv.textContent = '';
+      sdgNextBtn.style.display = 'none';
+      sdgGiveUpBtn.style.display = '';
+      renderSDG();
+      return;
+    }
+    // Undo algebraic expression use
+    if (lastStep && lastStep.match(/\[.*\]/)) {
+      // Remove last number (the result)
+      const resultMatch = lastStep.match(/= (-?\d+(?:\.\d+)?)/);
+      let result = resultMatch ? Number(resultMatch[1]) : null;
+      let resultIdx = result !== null ? sdgState.numbers.lastIndexOf(result) : -1;
+      if (resultIdx !== -1) {
+        sdgState.numbers.splice(resultIdx, 1);
+        sdgState.used.splice(resultIdx, 1);
+      }
+      // If the step used a number and the expr, unmark the number as used and restore the expr
+      const numMatch = lastStep.match(/^(-?\d+(?:\.\d+)?) [+\-×÷] \[.*\]/);
+      if (numMatch) {
+        const a = Number(numMatch[1]);
+        // Find the most recent used number matching a
+        for (let i = sdgState.numbers.length - 1; i >= 0; --i) {
+          if (sdgState.used[i] && sdgState.numbers[i] === a) {
+            sdgState.used[i] = false;
+            break;
+          }
         }
       }
-    }
-    // Restore the algebraic expression (if not present)
-    if (!sdgState.algebraExpr && typeof currentNumbers !== 'undefined') {
-      // Regenerate the exprObj for this round
-      // (We store it in sdgState._lastExprObj for undo)
-      if (sdgState._lastExprObj) {
-        sdgState.algebraExpr = sdgState._lastExprObj;
+      // Restore the algebraic expression (if not present)
+      if (!sdgState.algebraExpr && typeof currentNumbers !== 'undefined') {
+        // Regenerate the exprObj for this round
+        // (We store it in sdgState._lastExprObj for undo)
+        if (sdgState._lastExprObj) {
+          sdgState.algebraExpr = sdgState._lastExprObj;
+        }
       }
+      sdgState.selected = [];
+      sdgState.pendingOp = null;
+      sdgState.finished = false;
+      sdgFeedbackDiv.textContent = '';
+      sdgNextBtn.style.display = 'none';
+      sdgGiveUpBtn.style.display = '';
+      renderSDG();
+      return;
     }
-    sdgState.selected = [];
-    sdgState.pendingOp = null;
-    sdgState.finished = false;
-    sdgFeedbackDiv.textContent = '';
-    sdgNextBtn.style.display = 'none';
-    sdgGiveUpBtn.style.display = '';
-    renderSDG();
-    return;
   }
   // Otherwise, handle normal undo for binary ops
   const match = lastStep.match(/(-?\d+(?:\.\d+)?) ([+\-×÷]) (-?\d+(?:\.\d+)?) = (-?\d+(?:\.\d+)?)/);
