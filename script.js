@@ -753,121 +753,127 @@ function resetSDGState(numbers) {
 
 function renderSDG() {
   const roundFinished = sdgState.finished;
-  // Render numbers (stepwise merge)
+  // Responsive flex container for numbers row
   sdgNumbersDiv.innerHTML = '';
-  // Remove .selected from all number buttons before rendering (defensive, in case of DOM reuse)
-  // (Not strictly needed with full re-render, but safe for mobile browsers)
-  // Actually, since we clear innerHTML, we just need to ensure only the selected gets the class
+  sdgNumbersDiv.style.display = 'flex';
+  sdgNumbersDiv.style.flexWrap = 'nowrap';
+  sdgNumbersDiv.style.justifyContent = 'center';
+  sdgNumbersDiv.style.gap = '0.3em';
+  // Count how many elements will be in the row (numbers + expr if present)
+  let numRowCount = sdgState.numbers.filter((n, i) => !sdgState.used[i]).length;
+  if (currentMode === 'variables' && sdgState.algebraExpr) numRowCount++;
   // Render numbers and algebraic expression (for variables mode)
-    sdgState.numbers.forEach((num, idx) => {
-      if (sdgState.used[idx]) return;
-      const btn = document.createElement('button');
-      btn.textContent = num;
-      btn.className = 'sdg-btn';
-      btn.style.minWidth = '3.2em';
-      btn.style.maxWidth = '5em';
-      btn.style.textAlign = 'center';
-      btn.style.margin = '0.2em';
-      btn.disabled = roundFinished;
-      btn.classList.remove('selected');
-      if (sdgState.selected.length === 1 && sdgState.selected[0] === idx) {
-        btn.classList.add('selected');
+  sdgState.numbers.forEach((num, idx) => {
+    if (sdgState.used[idx]) return;
+    const btn = document.createElement('button');
+    btn.textContent = num;
+    btn.className = 'sdg-btn';
+    btn.style.flex = `1 1 0`;
+    btn.style.minWidth = '2.2em';
+    btn.style.maxWidth = `${Math.max(4, 16 / numRowCount)}em`;
+    btn.style.textAlign = 'center';
+    btn.style.margin = '0';
+    btn.style.overflow = 'hidden';
+    btn.style.textOverflow = 'ellipsis';
+    btn.style.whiteSpace = 'nowrap';
+    btn.disabled = roundFinished;
+    btn.classList.remove('selected');
+    if (sdgState.selected.length === 1 && sdgState.selected[0] === idx) {
+      btn.classList.add('selected');
+    }
+    btn.onclick = function() {
+      if (roundFinished) return;
+      // ...existing code for button click...
+      if (sdgState.selected.length === 0 && !sdgState.pendingOp) {
+        sdgState.selected = [idx];
+        window.requestAnimationFrame(renderSDG);
       }
-      btn.onclick = function() {
-        if (roundFinished) return;
-        // If nothing selected, select this
-        if (sdgState.selected.length === 0 && !sdgState.pendingOp) {
-          sdgState.selected = [idx];
-          window.requestAnimationFrame(renderSDG);
-        }
-        // If one thing selected and op is pending, perform operation
-        else if (sdgState.selected.length === 1 && sdgState.pendingOp && sdgState.selected[0] !== idx) {
-          let i = sdgState.selected[0];
-          let a, b, aLabel = '', bLabel = '', usedExpr = false;
-          // Support algebraic expression as either operand
-          if (i === 'expr') {
-            // Algebraic expression is first operand, this number is second
-            if (sdgState.algebraExpr) {
-              // Only check for variables if the algebraic expression is still present
-              if ((/x/.test(sdgState.algebraExpr.display) && sdgState.xValue === null) ||
-                  (/y/.test(sdgState.algebraExpr.display) && sdgState.yValue === null)) {
-                sdgFeedbackDiv.textContent = 'Set variable(s) first!';
-                return;
-              }
-              a = sdgState.algebraExpr.evalFn(
-                /x/.test(sdgState.algebraExpr.display) ? sdgState.xValue : 0,
-                /y/.test(sdgState.algebraExpr.display) ? sdgState.yValue : 0
-              );
-              if (isNaN(a) || !isFinite(a)) {
-                sdgFeedbackDiv.textContent = 'Expression is not a number!';
-                return;
-              }
-              b = sdgState.numbers[idx];
-              aLabel = `[${sdgState.algebraExpr.display}]`;
-              bLabel = b;
-              usedExpr = true;
-            } else {
-              // If algebraic expression is gone, treat as number
-              a = sdgState.numbers[i];
-              b = sdgState.numbers[idx];
-              aLabel = a;
-              bLabel = b;
+      else if (sdgState.selected.length === 1 && sdgState.pendingOp && sdgState.selected[0] !== idx) {
+        // ...existing code for operation...
+        let i = sdgState.selected[0];
+        let a, b, aLabel = '', bLabel = '', usedExpr = false;
+        if (i === 'expr') {
+          if (sdgState.algebraExpr) {
+            if ((/x/.test(sdgState.algebraExpr.display) && sdgState.xValue === null) ||
+                (/y/.test(sdgState.algebraExpr.display) && sdgState.yValue === null)) {
+              sdgFeedbackDiv.textContent = 'Set variable(s) first!';
+              return;
             }
+            a = sdgState.algebraExpr.evalFn(
+              /x/.test(sdgState.algebraExpr.display) ? sdgState.xValue : 0,
+              /y/.test(sdgState.algebraExpr.display) ? sdgState.yValue : 0
+            );
+            if (isNaN(a) || !isFinite(a)) {
+              sdgFeedbackDiv.textContent = 'Expression is not a number!';
+              return;
+            }
+            b = sdgState.numbers[idx];
+            aLabel = `[${sdgState.algebraExpr.display}]`;
+            bLabel = b;
+            usedExpr = true;
           } else {
-            // Number is first operand, check if second is expr
             a = sdgState.numbers[i];
             b = sdgState.numbers[idx];
             aLabel = a;
             bLabel = b;
           }
-          const op = sdgState.pendingOp;
-          let result;
-          if (op === '+') result = a + b;
-          else if (op === '-') result = a - b;
-          else if (op === '×') result = a * b;
-          else if (op === '÷') {
-            if (b === 0) {
-              sdgFeedbackDiv.textContent = '❌ Division by zero!';
-              return;
-            }
-            result = a / b;
+        } else {
+          a = sdgState.numbers[i];
+          b = sdgState.numbers[idx];
+          aLabel = a;
+          bLabel = b;
+        }
+        const op = sdgState.pendingOp;
+        let result;
+        if (op === '+') result = a + b;
+        else if (op === '-') result = a - b;
+        else if (op === '×') result = a * b;
+        else if (op === '÷') {
+          if (b === 0) {
+            sdgFeedbackDiv.textContent = '❌ Division by zero!';
+            return;
           }
-          // Mark used
-          if (i === 'expr' && sdgState.algebraExpr) {
-            // Remove algebraic expression from state
-            sdgState.algebraExpr = null;
-          } else {
-            sdgState.used[i] = true;
-          }
-          sdgState.used[idx] = true;
-          sdgState.numbers.unshift(result);
-          sdgState.used.unshift(false);
-          sdgState.steps.push(`${aLabel} ${op} ${bLabel} = ${result}`);
-          sdgState.selected = [];
-          sdgState.pendingOp = null;
-          // Win condition: only one value left and it is 24
-          if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1 && Math.abs(result - 24) < 1e-6) {
-            sdgState.finished = true;
-          } else if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
-            sdgState.finished = true;
-          }
+          result = a / b;
+        }
+        if (i === 'expr' && sdgState.algebraExpr) {
+          sdgState.algebraExpr = null;
+        } else {
+          sdgState.used[i] = true;
+        }
+        sdgState.used[idx] = true;
+        sdgState.numbers.unshift(result);
+        sdgState.used.unshift(false);
+        sdgState.steps.push(`${aLabel} ${op} ${bLabel} = ${result}`);
+        sdgState.selected = [];
+        sdgState.pendingOp = null;
+        if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1 && Math.abs(result - 24) < 1e-6) {
+          sdgState.finished = true;
+        } else if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
+          sdgState.finished = true;
+        }
+        window.requestAnimationFrame(renderSDG);
+      }
+      else if (sdgState.selected.length === 1 && !sdgState.pendingOp) {
+        if (sdgState.selected[0] !== idx) {
+          sdgState.selected = [idx];
           window.requestAnimationFrame(renderSDG);
         }
-        // If a number/expression is already selected but no pendingOp, allow changing selection
-        else if (sdgState.selected.length === 1 && !sdgState.pendingOp) {
-          if (sdgState.selected[0] !== idx) {
-            sdgState.selected = [idx];
-            window.requestAnimationFrame(renderSDG);
-          }
-        }
-      };
-      sdgNumbersDiv.appendChild(btn);
-    });
+      }
+    };
+    sdgNumbersDiv.appendChild(btn);
+  });
   // For variables mode, add the algebraic expression as a button in the number row
   if (currentMode === 'variables' && sdgState.algebraExpr) {
     const exprBtn = document.createElement('button');
     exprBtn.className = 'sdg-btn sdg-expr-btn';
     exprBtn.disabled = roundFinished;
+    exprBtn.style.flex = `1 1 0`;
+    exprBtn.style.minWidth = '2.2em';
+    exprBtn.style.maxWidth = `${Math.max(4, 16 / numRowCount)}em`;
+    exprBtn.style.margin = '0';
+    exprBtn.style.overflow = 'hidden';
+    exprBtn.style.textOverflow = 'ellipsis';
+    exprBtn.style.whiteSpace = 'nowrap';
     // Live simplification: substitute x/y if set, and show the fully reduced value if possible
     let exprStr = sdgState.algebraExpr.display;
     let showVal = false;
@@ -890,9 +896,15 @@ function renderSDG() {
     }
     let simplified = exprStr;
     if (sdgState.xValue !== null || sdgState.yValue !== null) {
-      // Replace x and y in the display string for a live preview
       simplified = exprStr.replace(/x/g, sdgState.xValue !== null ? `(${sdgState.xValue})` : 'x')
                          .replace(/y/g, sdgState.yValue !== null ? `(${sdgState.yValue})` : 'y');
+    }
+    // Adjust font size for long expressions
+    if (simplified.length > 12) {
+      exprBtn.style.fontSize = '0.95em';
+    }
+    if (simplified.length > 18) {
+      exprBtn.style.fontSize = '0.85em';
     }
     exprBtn.innerHTML = showVal ? `<b>${val}</b>` : simplified;
     exprBtn.onclick = function() {
@@ -940,7 +952,6 @@ function renderSDG() {
         sdgState.steps.push(`${aLabel} ${op} ${bLabel} = ${result}`);
         sdgState.selected = [];
         sdgState.pendingOp = null;
-        // Only end round if one number box (or expr) remains
         const numRemaining = sdgState.numbers.length - sdgState.used.filter(Boolean).length + (sdgState.algebraExpr ? 1 : 0);
         if (numRemaining === 1 && Math.abs(result - 24) < 1e-6) {
           sdgState.finished = true;
@@ -1048,88 +1059,96 @@ function renderSDG() {
     });
     sdgOpsDiv.appendChild(expRow);
   } else if (currentMode === 'variables') {
-    // Variables mode: show X= and Y= input buttons, styled like other op buttons
-    const varRow = document.createElement('div');
-    varRow.style.display = 'flex';
-    varRow.style.justifyContent = 'center';
-    varRow.style.gap = '0.7em';
-    varRow.style.width = '100%';
-    varRow.style.marginTop = '0.7em';
-    // X button
-    const xBtn = document.createElement('button');
-    xBtn.className = 'sdg-op-btn sdg-var-btn';
-    xBtn.style.flex = '2 1 0';
-    // Always reset disabled and style for new round
-    xBtn.disabled = false;
-    xBtn.style.opacity = '';
-    xBtn.style.background = '';
-    xBtn.style.color = '';
-    xBtn.style.borderColor = '';
-    const exprUsesX = sdgState.algebraExpr && /x/.test(sdgState.algebraExpr.display);
-    xBtn.innerHTML = `X = <b>${sdgState.xValue !== null ? sdgState.xValue : '?'}</b>`;
-    if (!exprUsesX) {
-      xBtn.disabled = true;
-      xBtn.style.opacity = '0.45';
-      xBtn.style.background = '#eee';
-      xBtn.style.color = '#888';
-      xBtn.style.borderColor = '#ccc';
-    } else if (sdgState.xValue !== null) {
-      // Gray out and disable if set
-      xBtn.disabled = true;
-      xBtn.style.opacity = '0.45';
-      xBtn.style.background = '#eee';
-      xBtn.style.color = '#888';
-      xBtn.style.borderColor = '#ccc';
-    } else {
-      xBtn.onclick = function() {
-        showVarInputDialog('X', sdgState.xValue, function(val) {
-          if (val === null) return;
-          if (val === sdgState.xValue) return;
-          sdgState.steps.push(`X = ${val}`);
-          sdgState.xValue = val;
-          renderSDG();
-        });
-      };
-    }
-    varRow.appendChild(xBtn);
-    // Y button
-    const yBtn = document.createElement('button');
-    yBtn.className = 'sdg-op-btn sdg-var-btn';
-    yBtn.style.flex = '2 1 0';
-    // Always reset disabled and style for new round
-    yBtn.disabled = false;
-    yBtn.style.opacity = '';
-    yBtn.style.background = '';
-    yBtn.style.color = '';
-    yBtn.style.borderColor = '';
-    const exprUsesY = sdgState.algebraExpr && /y/.test(sdgState.algebraExpr.display);
-    yBtn.innerHTML = `Y = <b>${sdgState.yValue !== null ? sdgState.yValue : '?'}</b>`;
-    if (!exprUsesY) {
-      yBtn.disabled = true;
-      yBtn.style.opacity = '0.45';
-      yBtn.style.background = '#eee';
-      yBtn.style.color = '#888';
-      yBtn.style.borderColor = '#ccc';
-    } else if (sdgState.yValue !== null) {
-      // Gray out and disable if set
-      yBtn.disabled = true;
-      yBtn.style.opacity = '0.45';
-      yBtn.style.background = '#eee';
-      yBtn.style.color = '#888';
-      yBtn.style.borderColor = '#ccc';
-    } else {
-      yBtn.onclick = function() {
-        showVarInputDialog('Y', sdgState.yValue, function(val) {
-          if (val === null) return;
-          if (val === sdgState.yValue) return;
-          sdgState.steps.push(`Y = ${val}`);
-          sdgState.yValue = val;
-          renderSDG();
-        });
-      };
-    }
-    varRow.appendChild(yBtn);
-    sdgOpsDiv.appendChild(varRow);
+  // Variables mode: show X= and Y= input buttons, styled like other op buttons, responsive
+  const varRow = document.createElement('div');
+  varRow.style.display = 'flex';
+  varRow.style.justifyContent = 'center';
+  varRow.style.gap = '0.5em';
+  varRow.style.width = '100%';
+  varRow.style.marginTop = '0.7em';
+  // Responsive width for variable buttons
+  const varBtnFlex = numRowCount > 5 ? '1 1 0' : '2 1 0';
+  // X button
+  const xBtn = document.createElement('button');
+  xBtn.className = 'sdg-op-btn sdg-var-btn';
+  xBtn.style.flex = varBtnFlex;
+  xBtn.style.minWidth = '2.2em';
+  xBtn.style.maxWidth = '7em';
+  xBtn.style.overflow = 'hidden';
+  xBtn.style.textOverflow = 'ellipsis';
+  xBtn.style.whiteSpace = 'nowrap';
+  xBtn.disabled = false;
+  xBtn.style.opacity = '';
+  xBtn.style.background = '';
+  xBtn.style.color = '';
+  xBtn.style.borderColor = '';
+  const exprUsesX = sdgState.algebraExpr && /x/.test(sdgState.algebraExpr.display);
+  xBtn.innerHTML = `X = <b>${sdgState.xValue !== null ? sdgState.xValue : '?'}</b>`;
+  if (!exprUsesX) {
+    xBtn.disabled = true;
+    xBtn.style.opacity = '0.45';
+    xBtn.style.background = '#eee';
+    xBtn.style.color = '#888';
+    xBtn.style.borderColor = '#ccc';
+  } else if (sdgState.xValue !== null) {
+    xBtn.disabled = true;
+    xBtn.style.opacity = '0.45';
+    xBtn.style.background = '#eee';
+    xBtn.style.color = '#888';
+    xBtn.style.borderColor = '#ccc';
+  } else {
+    xBtn.onclick = function() {
+      showVarInputDialog('X', sdgState.xValue, function(val) {
+        if (val === null) return;
+        if (val === sdgState.xValue) return;
+        sdgState.steps.push(`X = ${val}`);
+        sdgState.xValue = val;
+        renderSDG();
+      });
+    };
+  }
+  varRow.appendChild(xBtn);
+  // Y button
+  const yBtn = document.createElement('button');
+  yBtn.className = 'sdg-op-btn sdg-var-btn';
+  yBtn.style.flex = varBtnFlex;
+  yBtn.style.minWidth = '2.2em';
+  yBtn.style.maxWidth = '7em';
+  yBtn.style.overflow = 'hidden';
+  yBtn.style.textOverflow = 'ellipsis';
+  yBtn.style.whiteSpace = 'nowrap';
+  yBtn.disabled = false;
+  yBtn.style.opacity = '';
+  yBtn.style.background = '';
+  yBtn.style.color = '';
+  yBtn.style.borderColor = '';
+  const exprUsesY = sdgState.algebraExpr && /y/.test(sdgState.algebraExpr.display);
+  yBtn.innerHTML = `Y = <b>${sdgState.yValue !== null ? sdgState.yValue : '?'}</b>`;
+  if (!exprUsesY) {
+    yBtn.disabled = true;
+    yBtn.style.opacity = '0.45';
+    yBtn.style.background = '#eee';
+    yBtn.style.color = '#888';
+    yBtn.style.borderColor = '#ccc';
+  } else if (sdgState.yValue !== null) {
+    yBtn.disabled = true;
+    yBtn.style.opacity = '0.45';
+    yBtn.style.background = '#eee';
+    yBtn.style.color = '#888';
+    yBtn.style.borderColor = '#ccc';
+  } else {
+    yBtn.onclick = function() {
+      showVarInputDialog('Y', sdgState.yValue, function(val) {
+        if (val === null) return;
+        if (val === sdgState.yValue) return;
+        sdgState.steps.push(`Y = ${val}`);
+        sdgState.yValue = val;
+        renderSDG();
+      });
+    };
+  }
+  varRow.appendChild(yBtn);
+  sdgOpsDiv.appendChild(varRow);
   }
   // Render steps
   sdgExprDiv.innerHTML = sdgState.steps.map(s => `<div>${s}</div>`).join('');
