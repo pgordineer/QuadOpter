@@ -773,9 +773,17 @@ function renderSDG() {
     btn.style.maxWidth = `${Math.max(4, 16 / numRowCount)}em`;
     btn.style.textAlign = 'center';
     btn.style.margin = '0';
-    btn.style.overflow = 'hidden';
-    btn.style.textOverflow = 'ellipsis';
-    btn.style.whiteSpace = 'nowrap';
+    btn.style.overflow = 'visible';
+    btn.style.textOverflow = 'clip';
+    btn.style.whiteSpace = 'normal';
+    // Responsive font size for long content
+    let numStr = String(num);
+    if (numStr.length > 6) {
+      btn.style.fontSize = '0.95em';
+    }
+    if (numStr.length > 10) {
+      btn.style.fontSize = '0.85em';
+    }
     btn.disabled = roundFinished;
     btn.classList.remove('selected');
     if (sdgState.selected.length === 1 && sdgState.selected[0] === idx) {
@@ -871,9 +879,9 @@ function renderSDG() {
     exprBtn.style.minWidth = '2.2em';
     exprBtn.style.maxWidth = `${Math.max(4, 16 / numRowCount)}em`;
     exprBtn.style.margin = '0';
-    exprBtn.style.overflow = 'hidden';
-    exprBtn.style.textOverflow = 'ellipsis';
-    exprBtn.style.whiteSpace = 'nowrap';
+    exprBtn.style.overflow = 'visible';
+    exprBtn.style.textOverflow = 'clip';
+    exprBtn.style.whiteSpace = 'normal';
     // Live simplification: substitute x/y if set, and show the fully reduced value if possible
     let exprStr = sdgState.algebraExpr.display;
     let showVal = false;
@@ -1074,9 +1082,9 @@ function renderSDG() {
   xBtn.style.flex = varBtnFlex;
   xBtn.style.minWidth = '2.2em';
   xBtn.style.maxWidth = '7em';
-  xBtn.style.overflow = 'hidden';
-  xBtn.style.textOverflow = 'ellipsis';
-  xBtn.style.whiteSpace = 'nowrap';
+  xBtn.style.overflow = 'visible';
+  xBtn.style.textOverflow = 'clip';
+  xBtn.style.whiteSpace = 'normal';
   xBtn.disabled = false;
   xBtn.style.opacity = '';
   xBtn.style.background = '';
@@ -1114,9 +1122,9 @@ function renderSDG() {
   yBtn.style.flex = varBtnFlex;
   yBtn.style.minWidth = '2.2em';
   yBtn.style.maxWidth = '7em';
-  yBtn.style.overflow = 'hidden';
-  yBtn.style.textOverflow = 'ellipsis';
-  yBtn.style.whiteSpace = 'nowrap';
+  yBtn.style.overflow = 'visible';
+  yBtn.style.textOverflow = 'clip';
+  yBtn.style.whiteSpace = 'normal';
   yBtn.disabled = false;
   yBtn.style.opacity = '';
   yBtn.style.background = '';
