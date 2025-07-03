@@ -684,41 +684,39 @@ function renderSDG() {
   // (Not strictly needed with full re-render, but safe for mobile browsers)
   // Actually, since we clear innerHTML, we just need to ensure only the selected gets the class
   // Render numbers and algebraic expression (for variables mode)
-  // Responsive scaling for numbers row in variables mode
-  let numberBtnMinWidth = '2.2em';
-  let numberBtnMaxWidth = '3.5em';
-  let numberBtnFontSize = '1.1em';
-  if (currentMode === 'variables') {
-    numberBtnMinWidth = '1.7em';
-    numberBtnMaxWidth = '2.7em';
+  sdgState.numbers.forEach((num, idx) => {
+    if (sdgState.used[idx]) return;
+    const btn = document.createElement('button');
+    btn.textContent = num;
+    btn.className = 'sdg-btn';
+    btn.style.minWidth = '3.2em';
+    btn.style.maxWidth = '5em';
+    btn.style.textAlign = 'center';
+    btn.style.margin = '0.2em';
+    btn.disabled = roundFinished;
+    btn.classList.remove('selected');
+    if (sdgState.selected.length === 1 && sdgState.selected[0] === idx) {
+      btn.classList.add('selected');
+    }
     btn.onclick = function() {
       if (roundFinished) return;
+      // If nothing selected, select this
       if (sdgState.selected.length === 0 && !sdgState.pendingOp) {
         sdgState.selected = [idx];
         window.requestAnimationFrame(renderSDG);
       }
+      // If one thing selected and op is pending, perform operation
       else if (sdgState.selected.length === 1 && sdgState.pendingOp && sdgState.selected[0] !== idx) {
         let i = sdgState.selected[0];
         let a, b, aLabel = '', bLabel = '', usedExpr = false;
-        // Only check for variable assignment if the expression button is being used directly
+        // Support algebraic expression as either operand
         if (i === 'expr') {
-          // Only here do we need to check for variable assignment
-          const exprStrLower = sdgState.algebraExpr.display.toLowerCase();
-          const needsX = /x/.test(exprStrLower);
-          const needsY = /y/.test(exprStrLower);
-          const xSet = !needsX || sdgState.xValue !== null;
-          const ySet = !needsY || sdgState.yValue !== null;
-          if (!xSet || !ySet) {
-            let missing = [];
-            if (!xSet) missing.push('X');
-            if (!ySet) missing.push('Y');
-            sdgFeedbackDiv.textContent = 'Set ' + missing.join(' and ') + ' first!';
+          // Algebraic expression is first operand, this number is second
+          if (sdgState.xValue === null || sdgState.yValue === null) {
+            sdgFeedbackDiv.textContent = 'Set variable(s) first!';
             return;
           }
-          a = sdgState.algebraExpr.evalFn(
-            needsX ? sdgState.xValue : 0,
-            needsY ? sdgState.yValue : 0
-          );
+          a = sdgState.algebraExpr.evalFn(sdgState.xValue, sdgState.yValue);
           if (isNaN(a) || !isFinite(a)) {
             sdgFeedbackDiv.textContent = 'Expression is not a number!';
             return;
@@ -728,6 +726,7 @@ function renderSDG() {
           bLabel = b;
           usedExpr = true;
         } else {
+          // Number is first operand, check if second is expr
           a = sdgState.numbers[i];
           b = sdgState.numbers[idx];
           aLabel = a;
@@ -745,7 +744,9 @@ function renderSDG() {
           }
           result = a / b;
         }
+        // Mark used
         if (i === 'expr') {
+          // Remove algebraic expression from state
           sdgState.algebraExpr = null;
         } else {
           sdgState.used[i] = true;
@@ -756,31 +757,15 @@ function renderSDG() {
         sdgState.steps.push(`${aLabel} ${op} ${bLabel} = ${result}`);
         sdgState.selected = [];
         sdgState.pendingOp = null;
-        const numRemaining = sdgState.numbers.length - sdgState.used.filter(Boolean).length + (sdgState.algebraExpr ? 1 : 0);
-        if (numRemaining === 1 && Math.abs(result - 24) < 1e-6) {
+        // Win condition: only one value left and it is 24
+        if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1 && Math.abs(result - 24) < 1e-6) {
           sdgState.finished = true;
-        } else if (numRemaining === 1) {
-          sdgState.finished = true;
-        }
-        window.requestAnimationFrame(renderSDG);
-      }
-      else if (sdgState.selected.length === 1 && !sdgState.pendingOp) {
-        if (sdgState.selected[0] !== idx) {
-          sdgState.selected = [idx];
-          window.requestAnimationFrame(renderSDG);
-        }
-      }
-    };
-        sdgState.selected = [];
-        sdgState.pendingOp = null;
-        const numRemaining = sdgState.numbers.length - sdgState.used.filter(Boolean).length + (sdgState.algebraExpr ? 1 : 0);
-        if (numRemaining === 1 && Math.abs(result - 24) < 1e-6) {
-          sdgState.finished = true;
-        } else if (numRemaining === 1) {
+        } else if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
           sdgState.finished = true;
         }
         window.requestAnimationFrame(renderSDG);
       }
+      // If a number/expression is already selected but no pendingOp, allow changing selection
       else if (sdgState.selected.length === 1 && !sdgState.pendingOp) {
         if (sdgState.selected[0] !== idx) {
           sdgState.selected = [idx];
@@ -795,15 +780,11 @@ function renderSDG() {
     const exprBtn = document.createElement('button');
     exprBtn.className = 'sdg-btn sdg-expr-btn';
     exprBtn.disabled = roundFinished;
-    // Responsive scaling for expression button
-    exprBtn.style.minWidth = '3.5em';
-    exprBtn.style.maxWidth = '7.5em';
-    exprBtn.style.fontSize = '0.98em';
-    exprBtn.style.margin = '0.13em';
-    // ...existing code for value display and click handler...
+    // Live simplification: substitute x/y if set, and show the fully reduced value if possible
     let exprStr = sdgState.algebraExpr.display;
     let showVal = false;
     let val = null;
+    // Only require variables that are present in the expression
     const exprStrLower = sdgState.algebraExpr.display.toLowerCase();
     const needsX = /x/.test(exprStrLower);
     const needsY = /y/.test(exprStrLower);
@@ -821,6 +802,7 @@ function renderSDG() {
     }
     let simplified = exprStr;
     if (sdgState.xValue !== null || sdgState.yValue !== null) {
+      // Replace x and y in the display string for a live preview
       simplified = exprStr.replace(/x/g, sdgState.xValue !== null ? `(${sdgState.xValue})` : 'x')
                          .replace(/y/g, sdgState.yValue !== null ? `(${sdgState.yValue})` : 'y');
     }
@@ -838,17 +820,11 @@ function renderSDG() {
           return;
         } else {
           a = sdgState.numbers[i];
-          if (!xSet || !ySet) {
-            let missing = [];
-            if (!xSet) missing.push('X');
-            if (!ySet) missing.push('Y');
-            sdgFeedbackDiv.textContent = 'Set ' + missing.join(' and ') + ' first!';
+          if (sdgState.xValue === null || sdgState.yValue === null) {
+            sdgFeedbackDiv.textContent = 'Set X and Y first!';
             return;
           }
-          b = sdgState.algebraExpr.evalFn(
-            needsX ? sdgState.xValue : 0,
-            needsY ? sdgState.yValue : 0
-          );
+          b = sdgState.algebraExpr.evalFn(sdgState.xValue, sdgState.yValue);
           if (isNaN(b) || !isFinite(b)) {
             sdgFeedbackDiv.textContent = 'Expression is not a number!';
             return;
@@ -876,6 +852,7 @@ function renderSDG() {
         sdgState.steps.push(`${aLabel} ${op} ${bLabel} = ${result}`);
         sdgState.selected = [];
         sdgState.pendingOp = null;
+        // Only end round if one number box (or expr) remains
         const numRemaining = sdgState.numbers.length - sdgState.used.filter(Boolean).length + (sdgState.algebraExpr ? 1 : 0);
         if (numRemaining === 1 && Math.abs(result - 24) < 1e-6) {
           sdgState.finished = true;
@@ -1575,5 +1552,4 @@ if (dailyDatePill) {
       cal.style.zIndex = 1001;
     }, 0);
   };
-// ...existing code...
 }
