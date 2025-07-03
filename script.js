@@ -684,97 +684,110 @@ function renderSDG() {
   // (Not strictly needed with full re-render, but safe for mobile browsers)
   // Actually, since we clear innerHTML, we just need to ensure only the selected gets the class
   // Render numbers and algebraic expression (for variables mode)
-  sdgState.numbers.forEach((num, idx) => {
-    if (sdgState.used[idx]) return;
-    const btn = document.createElement('button');
-    btn.textContent = num;
-    btn.className = 'sdg-btn';
-    btn.style.minWidth = '3.2em';
-    btn.style.maxWidth = '5em';
-    btn.style.textAlign = 'center';
-    btn.style.margin = '0.2em';
-    btn.disabled = roundFinished;
-    btn.classList.remove('selected');
-    if (sdgState.selected.length === 1 && sdgState.selected[0] === idx) {
-      btn.classList.add('selected');
-    }
-    btn.onclick = function() {
-      if (roundFinished) return;
-      // If nothing selected, select this
-      if (sdgState.selected.length === 0 && !sdgState.pendingOp) {
-        sdgState.selected = [idx];
-        window.requestAnimationFrame(renderSDG);
+    sdgState.numbers.forEach((num, idx) => {
+      if (sdgState.used[idx]) return;
+      const btn = document.createElement('button');
+      btn.textContent = num;
+      btn.className = 'sdg-btn';
+      btn.style.minWidth = '3.2em';
+      btn.style.maxWidth = '5em';
+      btn.style.textAlign = 'center';
+      btn.style.margin = '0.2em';
+      btn.disabled = roundFinished;
+      btn.classList.remove('selected');
+      if (sdgState.selected.length === 1 && sdgState.selected[0] === idx) {
+        btn.classList.add('selected');
       }
-      // If one thing selected and op is pending, perform operation
-      else if (sdgState.selected.length === 1 && sdgState.pendingOp && sdgState.selected[0] !== idx) {
-        let i = sdgState.selected[0];
-        let a, b, aLabel = '', bLabel = '', usedExpr = false;
-        // Support algebraic expression as either operand
-        if (i === 'expr') {
-          // Algebraic expression is first operand, this number is second
-          if (sdgState.xValue === null || sdgState.yValue === null) {
-            sdgFeedbackDiv.textContent = 'Set variable(s) first!';
-            return;
-          }
-          a = sdgState.algebraExpr.evalFn(sdgState.xValue, sdgState.yValue);
-          if (isNaN(a) || !isFinite(a)) {
-            sdgFeedbackDiv.textContent = 'Expression is not a number!';
-            return;
-          }
-          b = sdgState.numbers[idx];
-          aLabel = `[${sdgState.algebraExpr.display}]`;
-          bLabel = b;
-          usedExpr = true;
-        } else {
-          // Number is first operand, check if second is expr
-          a = sdgState.numbers[i];
-          b = sdgState.numbers[idx];
-          aLabel = a;
-          bLabel = b;
-        }
-        const op = sdgState.pendingOp;
-        let result;
-        if (op === '+') result = a + b;
-        else if (op === '-') result = a - b;
-        else if (op === '×') result = a * b;
-        else if (op === '÷') {
-          if (b === 0) {
-            sdgFeedbackDiv.textContent = '❌ Division by zero!';
-            return;
-          }
-          result = a / b;
-        }
-        // Mark used
-        if (i === 'expr') {
-          // Remove algebraic expression from state
-          sdgState.algebraExpr = null;
-        } else {
-          sdgState.used[i] = true;
-        }
-        sdgState.used[idx] = true;
-        sdgState.numbers.unshift(result);
-        sdgState.used.unshift(false);
-        sdgState.steps.push(`${aLabel} ${op} ${bLabel} = ${result}`);
-        sdgState.selected = [];
-        sdgState.pendingOp = null;
-        // Win condition: only one value left and it is 24
-        if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1 && Math.abs(result - 24) < 1e-6) {
-          sdgState.finished = true;
-        } else if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
-          sdgState.finished = true;
-        }
-        window.requestAnimationFrame(renderSDG);
-      }
-      // If a number/expression is already selected but no pendingOp, allow changing selection
-      else if (sdgState.selected.length === 1 && !sdgState.pendingOp) {
-        if (sdgState.selected[0] !== idx) {
+      btn.onclick = function() {
+        if (roundFinished) return;
+        // If nothing selected, select this
+        if (sdgState.selected.length === 0 && !sdgState.pendingOp) {
           sdgState.selected = [idx];
           window.requestAnimationFrame(renderSDG);
         }
-      }
-    };
-    sdgNumbersDiv.appendChild(btn);
-  });
+        // If one thing selected and op is pending, perform operation
+        else if (sdgState.selected.length === 1 && sdgState.pendingOp && sdgState.selected[0] !== idx) {
+          let i = sdgState.selected[0];
+          let a, b, aLabel = '', bLabel = '', usedExpr = false;
+          // Support algebraic expression as either operand
+          if (i === 'expr') {
+            // Algebraic expression is first operand, this number is second
+            if (sdgState.algebraExpr) {
+              // Only check for variables if the algebraic expression is still present
+              if ((/x/.test(sdgState.algebraExpr.display) && sdgState.xValue === null) ||
+                  (/y/.test(sdgState.algebraExpr.display) && sdgState.yValue === null)) {
+                sdgFeedbackDiv.textContent = 'Set variable(s) first!';
+                return;
+              }
+              a = sdgState.algebraExpr.evalFn(
+                /x/.test(sdgState.algebraExpr.display) ? sdgState.xValue : 0,
+                /y/.test(sdgState.algebraExpr.display) ? sdgState.yValue : 0
+              );
+              if (isNaN(a) || !isFinite(a)) {
+                sdgFeedbackDiv.textContent = 'Expression is not a number!';
+                return;
+              }
+              b = sdgState.numbers[idx];
+              aLabel = `[${sdgState.algebraExpr.display}]`;
+              bLabel = b;
+              usedExpr = true;
+            } else {
+              // If algebraic expression is gone, treat as number
+              a = sdgState.numbers[i];
+              b = sdgState.numbers[idx];
+              aLabel = a;
+              bLabel = b;
+            }
+          } else {
+            // Number is first operand, check if second is expr
+            a = sdgState.numbers[i];
+            b = sdgState.numbers[idx];
+            aLabel = a;
+            bLabel = b;
+          }
+          const op = sdgState.pendingOp;
+          let result;
+          if (op === '+') result = a + b;
+          else if (op === '-') result = a - b;
+          else if (op === '×') result = a * b;
+          else if (op === '÷') {
+            if (b === 0) {
+              sdgFeedbackDiv.textContent = '❌ Division by zero!';
+              return;
+            }
+            result = a / b;
+          }
+          // Mark used
+          if (i === 'expr' && sdgState.algebraExpr) {
+            // Remove algebraic expression from state
+            sdgState.algebraExpr = null;
+          } else {
+            sdgState.used[i] = true;
+          }
+          sdgState.used[idx] = true;
+          sdgState.numbers.unshift(result);
+          sdgState.used.unshift(false);
+          sdgState.steps.push(`${aLabel} ${op} ${bLabel} = ${result}`);
+          sdgState.selected = [];
+          sdgState.pendingOp = null;
+          // Win condition: only one value left and it is 24
+          if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1 && Math.abs(result - 24) < 1e-6) {
+            sdgState.finished = true;
+          } else if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
+            sdgState.finished = true;
+          }
+          window.requestAnimationFrame(renderSDG);
+        }
+        // If a number/expression is already selected but no pendingOp, allow changing selection
+        else if (sdgState.selected.length === 1 && !sdgState.pendingOp) {
+          if (sdgState.selected[0] !== idx) {
+            sdgState.selected = [idx];
+            window.requestAnimationFrame(renderSDG);
+          }
+        }
+      };
+      sdgNumbersDiv.appendChild(btn);
+    });
   // For variables mode, add the algebraic expression as a button in the number row
   if (currentMode === 'variables' && sdgState.algebraExpr) {
     const exprBtn = document.createElement('button');
