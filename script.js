@@ -759,31 +759,66 @@ function renderSDG() {
   sdgNumbersDiv.style.flexWrap = 'nowrap';
   sdgNumbersDiv.style.justifyContent = 'center';
   sdgNumbersDiv.style.gap = '0.3em';
-  // Count how many elements will be in the row (numbers + expr if present)
+  // Gather all number/expr strings for measurement
   let numRowCount = sdgState.numbers.filter((n, i) => !sdgState.used[i]).length;
-  if (currentMode === 'variables' && sdgState.algebraExpr) numRowCount++;
-  // Render numbers and algebraic expression (for variables mode)
+  let numRowContents = sdgState.numbers.filter((n, i) => !sdgState.used[i]).map(String);
+  let exprContent = null;
+  if (currentMode === 'variables' && sdgState.algebraExpr) {
+    let exprStr = sdgState.algebraExpr.display;
+    if (sdgState.xValue !== null || sdgState.yValue !== null) {
+      exprStr = exprStr.replace(/x/g, sdgState.xValue !== null ? `(${sdgState.xValue})` : 'x')
+                       .replace(/y/g, sdgState.yValue !== null ? `(${sdgState.yValue})` : 'y');
+    }
+    exprContent = exprStr;
+    numRowContents.push(exprContent);
+    numRowCount++;
+  }
+  // Try font sizes from largest to smallest until all fit
+  const fontSizes = ["1.15em", "1.05em", "0.95em", "0.85em", "0.75em", "0.65em"];
+  let chosenFontSize = fontSizes[0];
+  let containerWidth = sdgNumbersDiv.offsetWidth || sdgNumbersDiv.clientWidth || 400;
+  // Create a hidden div for measurement
+  let measureDiv = document.createElement('div');
+  measureDiv.style.visibility = 'hidden';
+  measureDiv.style.position = 'absolute';
+  measureDiv.style.left = '-9999px';
+  measureDiv.style.top = '-9999px';
+  measureDiv.style.whiteSpace = 'nowrap';
+  document.body.appendChild(measureDiv);
+  let boxPadding = 24; // px, estimate for button padding/margin/border
+  let gapPx = 6; // px, estimate for gap between buttons
+  for (let fs of fontSizes) {
+    let maxWidth = 0;
+    for (let content of numRowContents) {
+      measureDiv.style.fontSize = fs;
+      measureDiv.textContent = content;
+      let w = measureDiv.offsetWidth + boxPadding;
+      if (w > maxWidth) maxWidth = w;
+    }
+    let totalWidth = maxWidth * numRowCount + gapPx * (numRowCount - 1);
+    if (totalWidth <= containerWidth) {
+      chosenFontSize = fs;
+      break;
+    }
+    // If none fit, will use smallest
+    chosenFontSize = fs;
+  }
+  document.body.removeChild(measureDiv);
+  // Now render all number buttons with chosenFontSize and equal width
+  let buttonWidth = `calc((100% - ${(numRowCount - 1) * 0.3}em) / ${numRowCount})`;
   sdgState.numbers.forEach((num, idx) => {
     if (sdgState.used[idx]) return;
     const btn = document.createElement('button');
     btn.textContent = num;
     btn.className = 'sdg-btn';
     btn.style.flex = `1 1 0`;
-    btn.style.minWidth = '2.2em';
-    btn.style.maxWidth = `${Math.max(4, 16 / numRowCount)}em`;
+    btn.style.width = buttonWidth;
+    btn.style.fontSize = chosenFontSize;
     btn.style.textAlign = 'center';
     btn.style.margin = '0';
     btn.style.overflow = 'visible';
     btn.style.textOverflow = 'clip';
     btn.style.whiteSpace = 'normal';
-    // Responsive font size for long content
-    let numStr = String(num);
-    if (numStr.length > 6) {
-      btn.style.fontSize = '0.95em';
-    }
-    if (numStr.length > 10) {
-      btn.style.fontSize = '0.85em';
-    }
     btn.disabled = roundFinished;
     btn.classList.remove('selected');
     if (sdgState.selected.length === 1 && sdgState.selected[0] === idx) {
@@ -876,17 +911,16 @@ function renderSDG() {
     exprBtn.className = 'sdg-btn sdg-expr-btn';
     exprBtn.disabled = roundFinished;
     exprBtn.style.flex = `1 1 0`;
-    exprBtn.style.minWidth = '2.2em';
-    exprBtn.style.maxWidth = `${Math.max(4, 16 / numRowCount)}em`;
+    exprBtn.style.width = buttonWidth;
+    exprBtn.style.fontSize = chosenFontSize;
+    exprBtn.style.textAlign = 'center';
     exprBtn.style.margin = '0';
     exprBtn.style.overflow = 'visible';
     exprBtn.style.textOverflow = 'clip';
     exprBtn.style.whiteSpace = 'normal';
-    // Live simplification: substitute x/y if set, and show the fully reduced value if possible
     let exprStr = sdgState.algebraExpr.display;
     let showVal = false;
     let val = null;
-    // Only require variables that are present in the expression
     const exprStrLower = sdgState.algebraExpr.display.toLowerCase();
     const needsX = /x/.test(exprStrLower);
     const needsY = /y/.test(exprStrLower);
@@ -906,13 +940,6 @@ function renderSDG() {
     if (sdgState.xValue !== null || sdgState.yValue !== null) {
       simplified = exprStr.replace(/x/g, sdgState.xValue !== null ? `(${sdgState.xValue})` : 'x')
                          .replace(/y/g, sdgState.yValue !== null ? `(${sdgState.yValue})` : 'y');
-    }
-    // Adjust font size for long expressions
-    if (simplified.length > 12) {
-      exprBtn.style.fontSize = '0.95em';
-    }
-    if (simplified.length > 18) {
-      exprBtn.style.fontSize = '0.85em';
     }
     exprBtn.innerHTML = showVal ? `<b>${val}</b>` : simplified;
     exprBtn.onclick = function() {
