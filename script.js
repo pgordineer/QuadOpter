@@ -232,8 +232,94 @@ function evalBinary(a, op, b) {
 
 function showVariablesMode() {
   currentMode = 'variables';
-  // TODO: Implement Variables mode logic
-  alert('Variables mode coming soon!');
+  let { numbers, exprObj } = generateVariablesModePuzzle();
+  currentNumbers = numbers;
+  currentSolution = null; // Not used for variables mode yet
+  startVariablesGame(numbers, exprObj);
+}
+
+// Generate 3 random integers and 1 random algebraic expression
+function generateVariablesModePuzzle() {
+  // 3 random integers (nonzero, -24 to 24)
+  let nums = [];
+  while (nums.length < 3) {
+    let n = randInt(-24, 24);
+    if (n !== 0) nums.push(n);
+  }
+  // Expression templates: each returns { display, evalFn }
+  const templates = [
+    // 2(x+y)
+    () => {
+      let c = randInt(2, 4);
+      return {
+        display: `${c}(x+y)`,
+        evalFn: (x, y) => c * (x + y)
+      };
+    },
+    // 3(y-2)+6
+    () => {
+      let c = randInt(2, 4), d = randInt(1, 6);
+      return {
+        display: `${c}(y-2)+${d}`,
+        evalFn: (x, y) => c * (y - 2) + d
+      };
+    },
+    // 3x^2+2
+    () => {
+      let c = randInt(2, 4), d = randInt(1, 6);
+      return {
+        display: `${c}x²+${d}`,
+        evalFn: (x, y) => c * x * x + d
+      };
+    },
+    // y^3/y^2-3
+    () => {
+      let d = randInt(1, 6);
+      return {
+        display: `y³/y²-${d}`,
+        evalFn: (x, y) => (y !== 0 ? y * y * y / (y * y) - d : NaN)
+      };
+    },
+    // (-2x-6x)/-4
+    () => {
+      return {
+        display: '(-2x-6x)/-4',
+        evalFn: (x, y) => ((-2 * x - 6 * x) / -4)
+      };
+    },
+    // x^2-2y^2
+    () => {
+      return {
+        display: 'x²-2y²',
+        evalFn: (x, y) => x * x - 2 * y * y
+      };
+    },
+    // (x^2+2)/(y^2)
+    () => {
+      return {
+        display: '(x²+2)/(y²)',
+        evalFn: (x, y) => (y !== 0 ? (x * x + 2) / (y * y) : NaN)
+      };
+    }
+  ];
+  // Pick a random template
+  const exprObj = templates[randInt(0, templates.length - 1)]();
+  return { numbers: nums, exprObj };
+}
+
+function startVariablesGame(numbers, exprObj) {
+  resetSDGState(numbers);
+  // Store the algebraic expression object in sdgState
+  sdgState.algebraExpr = exprObj;
+  // For Undo: keep a reference to restore the exprObj if needed
+  sdgState._lastExprObj = exprObj;
+  renderSDG();
+  sdgFeedbackDiv.textContent = '';
+  singleDigitsGameDiv.style.display = '';
+  mainMenuDiv.style.display = 'none';
+  sdgNextBtn.style.display = 'none';
+  sdgGiveUpBtn.style.display = '';
+  sdgGiveUpBtn.disabled = false;
 }
 
 // Difficulty levels: 1 = Easy, 2 = Medium, 3 = Hard
@@ -378,18 +464,23 @@ let sdgState = {
   step: 0,
   finished: false, // Track if round is finished
   expUsed: false, // Track if exponential op has been used (for operations mode)
-  expStep: null // Track which exp op was used (optional, for undo)
+  expStep: null, // Track which exp op was used (optional, for undo)
+  xValue: null, // For variables mode: current value of x
+  yValue: null  // For variables mode: current value of y
 };
 
 function resetSDGState(numbers) {
   sdgState.numbers = numbers.slice();
   sdgState.used = Array(numbers.length).fill(false);
-  sdgState.selected = []; // indices of selected numbers
+  sdgState.selected = [];
   sdgState.pendingOp = null;
   sdgState.steps = [];
   sdgState.finished = false;
   sdgState.expUsed = false;
   sdgState.expStep = null;
+  sdgState.xValue = null;
+  sdgState.yValue = null;
+  sdgState.algebraExpr = null;
 }
 
 function renderSDG() {
@@ -399,6 +490,7 @@ function renderSDG() {
   // Remove .selected from all number buttons before rendering (defensive, in case of DOM reuse)
   // (Not strictly needed with full re-render, but safe for mobile browsers)
   // Actually, since we clear innerHTML, we just need to ensure only the selected gets the class
+  // Render numbers and algebraic expression (for variables mode)
   sdgState.numbers.forEach((num, idx) => {
     if (sdgState.used[idx]) return;
     const btn = document.createElement('button');
@@ -409,26 +501,44 @@ function renderSDG() {
     btn.style.textAlign = 'center';
     btn.style.margin = '0.2em';
     btn.disabled = roundFinished;
-    // Always remove .selected (defensive, in case of DOM reuse)
     btn.classList.remove('selected');
-    // Highlight if selected: add .selected class
     if (sdgState.selected.length === 1 && sdgState.selected[0] === idx) {
       btn.classList.add('selected');
     }
     btn.onclick = function() {
       if (roundFinished) return;
-      // If no number is selected and no pendingOp, select this as first operand
+      // If nothing selected, select this
       if (sdgState.selected.length === 0 && !sdgState.pendingOp) {
         sdgState.selected = [idx];
-        // Defer render to next tick to ensure DOM updates before next tap
         window.requestAnimationFrame(renderSDG);
       }
-      // If one number is selected and a pendingOp, and this is a different number, perform the operation
+      // If one thing selected and op is pending, perform operation
       else if (sdgState.selected.length === 1 && sdgState.pendingOp && sdgState.selected[0] !== idx) {
-        const i = sdgState.selected[0];
-        const j = idx;
-        const a = sdgState.numbers[i];
-        const b = sdgState.numbers[j];
+        let i = sdgState.selected[0];
+        let a, b, aLabel = '', bLabel = '', usedExpr = false;
+        // Support algebraic expression as either operand
+        if (i === 'expr') {
+          // Algebraic expression is first operand, this number is second
+          if (sdgState.xValue === null || sdgState.yValue === null) {
+            sdgFeedbackDiv.textContent = 'Set X and Y first!';
+            return;
+          }
+          a = sdgState.algebraExpr.evalFn(sdgState.xValue, sdgState.yValue);
+          if (isNaN(a) || !isFinite(a)) {
+            sdgFeedbackDiv.textContent = 'Expression is not a number!';
+            return;
+          }
+          b = sdgState.numbers[idx];
+          aLabel = `[${sdgState.algebraExpr.display}]`;
+          bLabel = b;
+          usedExpr = true;
+        } else {
+          // Number is first operand, check if second is expr
+          a = sdgState.numbers[i];
+          b = sdgState.numbers[idx];
+          aLabel = a;
+          bLabel = b;
+        }
         const op = sdgState.pendingOp;
         let result;
         if (op === '+') result = a + b;
@@ -442,17 +552,19 @@ function renderSDG() {
           result = a / b;
         }
         // Mark used
-        sdgState.used[i] = true;
-        sdgState.used[j] = true;
-        // Add result to numbers at the start (left-most)
+        if (i === 'expr') {
+          // Remove algebraic expression from state
+          sdgState.algebraExpr = null;
+        } else {
+          sdgState.used[i] = true;
+        }
+        sdgState.used[idx] = true;
         sdgState.numbers.unshift(result);
         sdgState.used.unshift(false);
-        // Record step
-        sdgState.steps.push(`${a} ${op} ${b} = ${result}`);
-        // Reset selection and op
+        sdgState.steps.push(`${aLabel} ${op} ${bLabel} = ${result}`);
         sdgState.selected = [];
         sdgState.pendingOp = null;
-        // Check for win
+        // Win condition: only one value left and it is 24
         if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1 && Math.abs(result - 24) < 1e-6) {
           sdgState.finished = true;
         } else if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
@@ -460,7 +572,7 @@ function renderSDG() {
         }
         window.requestAnimationFrame(renderSDG);
       }
-      // If a number is already selected but no pendingOp, allow changing selection
+      // If a number/expression is already selected but no pendingOp, allow changing selection
       else if (sdgState.selected.length === 1 && !sdgState.pendingOp) {
         if (sdgState.selected[0] !== idx) {
           sdgState.selected = [idx];
@@ -470,6 +582,84 @@ function renderSDG() {
     };
     sdgNumbersDiv.appendChild(btn);
   });
+  // For variables mode, add the algebraic expression as a button in the number row
+  if (currentMode === 'variables' && sdgState.algebraExpr) {
+    const exprBtn = document.createElement('button');
+    exprBtn.className = 'sdg-btn sdg-expr-btn';
+    exprBtn.disabled = roundFinished;
+    let exprStr = sdgState.algebraExpr.display;
+    let val = null;
+    if (sdgState.xValue !== null && sdgState.yValue !== null) {
+      try {
+        val = sdgState.algebraExpr.evalFn(sdgState.xValue, sdgState.yValue);
+        if (isNaN(val) || !isFinite(val)) val = 'NaN';
+      } catch (e) { val = 'NaN'; }
+    }
+    exprBtn.innerHTML = val !== null ? `${exprStr}<br><b>${val}</b>` : exprStr;
+    exprBtn.onclick = function() {
+      if (roundFinished) return;
+      if (sdgState.selected.length === 0 && !sdgState.pendingOp) {
+        sdgState.selected = ['expr'];
+        window.requestAnimationFrame(renderSDG);
+      }
+      else if (sdgState.selected.length === 1 && sdgState.pendingOp && sdgState.selected[0] !== 'expr') {
+        let i = sdgState.selected[0];
+        let a, b, aLabel = '', bLabel = '', usedExpr = false;
+        if (i === 'expr') {
+          return;
+        } else {
+          a = sdgState.numbers[i];
+          if (sdgState.xValue === null || sdgState.yValue === null) {
+            sdgFeedbackDiv.textContent = 'Set X and Y first!';
+            return;
+          }
+          b = sdgState.algebraExpr.evalFn(sdgState.xValue, sdgState.yValue);
+          if (isNaN(b) || !isFinite(b)) {
+            sdgFeedbackDiv.textContent = 'Expression is not a number!';
+            return;
+          }
+          aLabel = a;
+          bLabel = `[${sdgState.algebraExpr.display}]`;
+          usedExpr = true;
+        }
+        const op = sdgState.pendingOp;
+        let result;
+        if (op === '+') result = a + b;
+        else if (op === '-') result = a - b;
+        else if (op === '×') result = a * b;
+        else if (op === '÷') {
+          if (b === 0) {
+            sdgFeedbackDiv.textContent = '❌ Division by zero!';
+            return;
+          }
+          result = a / b;
+        }
+        sdgState.used[i] = true;
+        sdgState.algebraExpr = null;
+        sdgState.numbers.unshift(result);
+        sdgState.used.unshift(false);
+        sdgState.steps.push(`${aLabel} ${op} ${bLabel} = ${result}`);
+        sdgState.selected = [];
+        sdgState.pendingOp = null;
+        if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1 && Math.abs(result - 24) < 1e-6) {
+          sdgState.finished = true;
+        } else if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
+          sdgState.finished = true;
+        }
+        window.requestAnimationFrame(renderSDG);
+      }
+      else if (sdgState.selected.length === 1 && !sdgState.pendingOp) {
+        if (sdgState.selected[0] !== 'expr') {
+          sdgState.selected = ['expr'];
+          window.requestAnimationFrame(renderSDG);
+        }
+      }
+    };
+    if (sdgState.selected.length === 1 && sdgState.selected[0] === 'expr') {
+      exprBtn.classList.add('selected');
+    }
+    sdgNumbersDiv.appendChild(exprBtn);
+  }
   // Render ops (no parens)
   // Clear container
   sdgOpsDiv.innerHTML = '';
@@ -499,8 +689,9 @@ function renderSDG() {
   });
   sdgOpsDiv.appendChild(opsRow);
 
-  // Exponential operations row (second row, only in operations mode)
+  // Exponential operations row (second row)
   if (currentMode === 'operations') {
+    // ...existing code for exp ops row...
     const expRow = document.createElement('div');
     expRow.style.display = 'flex';
     expRow.style.justifyContent = 'center';
@@ -555,6 +746,47 @@ function renderSDG() {
       expRow.appendChild(btn);
     });
     sdgOpsDiv.appendChild(expRow);
+  } else if (currentMode === 'variables') {
+    // Variables mode: show X= and Y= input buttons, styled like other op buttons
+    const varRow = document.createElement('div');
+    varRow.style.display = 'flex';
+    varRow.style.justifyContent = 'center';
+    varRow.style.gap = '0.7em';
+    varRow.style.width = '100%';
+    varRow.style.marginTop = '0.7em';
+    // X button
+    const xBtn = document.createElement('button');
+    xBtn.className = 'sdg-op-btn sdg-var-btn';
+    xBtn.style.flex = '2 1 0';
+    xBtn.innerHTML = `X = <b>${sdgState.xValue !== null ? sdgState.xValue : '?'}</b>`;
+    xBtn.onclick = function() {
+      let val = prompt('Enter value for X (integer -24 to 24):', sdgState.xValue !== null ? sdgState.xValue : '');
+      if (val === null) return;
+      val = val.trim();
+      if (!/^[-]?\d{1,2}$/.test(val)) { alert('Please enter an integer from -24 to 24.'); return; }
+      let n = parseInt(val, 10);
+      if (n < -24 || n > 24) { alert('Please enter an integer from -24 to 24.'); return; }
+      sdgState.xValue = n;
+      renderSDG();
+    };
+    varRow.appendChild(xBtn);
+    // Y button
+    const yBtn = document.createElement('button');
+    yBtn.className = 'sdg-op-btn sdg-var-btn';
+    yBtn.style.flex = '2 1 0';
+    yBtn.innerHTML = `Y = <b>${sdgState.yValue !== null ? sdgState.yValue : '?'}</b>`;
+    yBtn.onclick = function() {
+      let val = prompt('Enter value for Y (integer -24 to 24):', sdgState.yValue !== null ? sdgState.yValue : '');
+      if (val === null) return;
+      val = val.trim();
+      if (!/^[-]?\d{1,2}$/.test(val)) { alert('Please enter an integer from -24 to 24.'); return; }
+      let n = parseInt(val, 10);
+      if (n < -24 || n > 24) { alert('Please enter an integer from -24 to 24.'); return; }
+      sdgState.yValue = n;
+      renderSDG();
+    };
+    varRow.appendChild(yBtn);
+    sdgOpsDiv.appendChild(varRow);
   }
   // Render steps
   sdgExprDiv.innerHTML = sdgState.steps.map(s => `<div>${s}</div>`).join('');
@@ -673,27 +905,60 @@ sdgGiveUpBtn.onclick = function() {
 // Undo button logic (restore correct state)
 sdgUndoBtn.onclick = function() {
   if (sdgState.steps.length === 0) return;
-  // Remove last step
   const lastStep = sdgState.steps.pop();
-  // Check if last step was an exponential op (for operations mode)
+  // Undo for operations mode exponential op
   if (currentMode === 'operations' && sdgState.expUsed && sdgState.expStep && (lastStep.includes('²') || lastStep.includes('³') || lastStep.startsWith('√') || lastStep.startsWith('∛'))) {
-    // Remove last number (the result)
     let resultIdx = sdgState.numbers.lastIndexOf(sdgState.expStep.result);
     if (resultIdx !== -1) {
       sdgState.numbers.splice(resultIdx, 1);
       sdgState.used.splice(resultIdx, 1);
     }
-    // Unmark the original number as used
     if (typeof sdgState.expStep.idx === 'number') {
       sdgState.used[sdgState.expStep.idx] = false;
     }
-    // Reset exp op state
     sdgState.expUsed = false;
     sdgState.expStep = null;
-    // Reset selection and op
     sdgState.selected = [];
     sdgState.pendingOp = null;
-    // Unfinish round if it was finished
+    sdgState.finished = false;
+    sdgFeedbackDiv.textContent = '';
+    sdgNextBtn.style.display = 'none';
+    sdgGiveUpBtn.style.display = '';
+    renderSDG();
+    return;
+  }
+  // Undo for variables mode: check if last step used the algebraic expression
+  if (currentMode === 'variables' && lastStep && lastStep.match(/\[.*\]/)) {
+    // Remove last number (the result)
+    const resultMatch = lastStep.match(/= (-?\d+(?:\.\d+)?)/);
+    let result = resultMatch ? Number(resultMatch[1]) : null;
+    let resultIdx = result !== null ? sdgState.numbers.lastIndexOf(result) : -1;
+    if (resultIdx !== -1) {
+      sdgState.numbers.splice(resultIdx, 1);
+      sdgState.used.splice(resultIdx, 1);
+    }
+    // If the step used a number and the expr, unmark the number as used and restore the expr
+    const numMatch = lastStep.match(/^(-?\d+(?:\.\d+)?) [+\-×÷] \[.*\]/);
+    if (numMatch) {
+      const a = Number(numMatch[1]);
+      // Find the most recent used number matching a
+      for (let i = sdgState.numbers.length - 1; i >= 0; --i) {
+        if (sdgState.used[i] && sdgState.numbers[i] === a) {
+          sdgState.used[i] = false;
+          break;
+        }
+      }
+    }
+    // Restore the algebraic expression (if not present)
+    if (!sdgState.algebraExpr && typeof currentNumbers !== 'undefined') {
+      // Regenerate the exprObj for this round
+      // (We store it in sdgState._lastExprObj for undo)
+      if (sdgState._lastExprObj) {
+        sdgState.algebraExpr = sdgState._lastExprObj;
+      }
+    }
+    sdgState.selected = [];
+    sdgState.pendingOp = null;
     sdgState.finished = false;
     sdgFeedbackDiv.textContent = '';
     sdgNextBtn.style.display = 'none';
@@ -708,12 +973,10 @@ sdgUndoBtn.onclick = function() {
   const op = match[2];
   const b = Number(match[3]);
   const result = Number(match[4]);
-  // Remove last number (the result)
   let resultIdx = sdgState.numbers.lastIndexOf(result);
   if (resultIdx === -1) return;
   sdgState.numbers.splice(resultIdx, 1);
   sdgState.used.splice(resultIdx, 1);
-  // Find the two most recent used numbers matching a and b, and unmark them
   let foundA = false, foundB = false;
   for (let i = sdgState.numbers.length - 1; i >= 0; --i) {
     if (sdgState.used[i]) {
@@ -727,18 +990,14 @@ sdgUndoBtn.onclick = function() {
       if (foundA && foundB) break;
     }
   }
-  // Reset selection and op
   sdgState.selected = [];
   sdgState.pendingOp = null;
-  // Unfinish round if it was finished
   sdgState.finished = false;
   sdgFeedbackDiv.textContent = '';
   sdgNextBtn.style.display = 'none';
   sdgGiveUpBtn.style.display = '';
   renderSDG();
 };
-
-sdgBackBtn.onclick = endSingleDigitsGame;
 
 // Overwrite showSingleDigitsMode to launch the UI
 function showSingleDigitsMode() {
