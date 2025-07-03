@@ -1021,7 +1021,9 @@ function renderSDG() {
   sdgExprDiv.innerHTML = sdgState.steps.map(s => `<div>${s}</div>`).join('');
   // Show solution if round is finished and correct
   // If finished and correct, show solution and disable undo
-  if (sdgState.finished && sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1 && Math.abs(sdgState.numbers.find((n, i) => !sdgState.used[i]) - 24) < 1e-6) {
+  // Only end the round if there is one number box (or expr) remaining
+  const numRemaining = sdgState.numbers.length - sdgState.used.filter(Boolean).length + (sdgState.algebraExpr ? 1 : 0);
+  if (sdgState.finished && numRemaining === 1 && Math.abs(sdgState.numbers.find((n, i) => !sdgState.used[i]) - 24) < 1e-6) {
     let html = `<div style='color:#1976d2;'><div>🎉 Correct!</div>`;
     if (currentSolution) {
       const steps = currentSolution.split('<br>');
@@ -1036,7 +1038,7 @@ function renderSDG() {
     sdgFeedbackDiv.innerHTML = html;
     sdgNextBtn.style.display = '';
     sdgGiveUpBtn.style.display = 'none';
-  } else if (sdgState.finished && sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
+  } else if (sdgState.finished && numRemaining === 1) {
     // If finished and incorrect, allow undo
     sdgFeedbackDiv.textContent = '❌ Not 24!';
     sdgFeedbackDiv.style.color = '#c00';
@@ -1095,18 +1097,35 @@ function showNextPuzzle() {
   let result;
   if (currentMode === 'operations') {
     result = generateSolvableOperationsMode(currentDifficulty);
+    currentNumbers = result.numbers;
+    currentSolution = result.solution;
+    startSingleDigitsGame(result.numbers);
   } else if (currentMode === 'single') {
     result = generateSolvableSingleDigits(currentDifficulty);
+    currentNumbers = result.numbers;
+    currentSolution = result.solution;
+    startSingleDigitsGame(result.numbers);
   } else if (currentMode === 'double') {
     result = generateSolvableDoubleDigits(currentDifficulty);
+    currentNumbers = result.numbers;
+    currentSolution = result.solution;
+    startSingleDigitsGame(result.numbers);
   } else if (currentMode === 'integers') {
     result = generateSolvableIntegers(currentDifficulty);
+    currentNumbers = result.numbers;
+    currentSolution = result.solution;
+    startSingleDigitsGame(result.numbers);
+  } else if (currentMode === 'variables') {
+    let { numbers, exprObj } = generateVariablesModePuzzle();
+    currentNumbers = numbers;
+    currentSolution = generateVariablesModeSolution(numbers, exprObj);
+    startVariablesGame(numbers, exprObj);
   } else {
     result = generateSolvableSingleDigits(currentDifficulty);
+    currentNumbers = result.numbers;
+    currentSolution = result.solution;
+    startSingleDigitsGame(result.numbers);
   }
-  currentNumbers = result.numbers;
-  currentSolution = result.solution;
-  startSingleDigitsGame(result.numbers);
 }
 sdgNextBtn.onclick = function() {
   showNextPuzzle();
