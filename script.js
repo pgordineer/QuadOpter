@@ -713,7 +713,7 @@ function renderSDG() {
         if (i === 'expr') {
           // Algebraic expression is first operand, this number is second
           if (sdgState.xValue === null || sdgState.yValue === null) {
-            sdgFeedbackDiv.textContent = 'Set X and Y first!';
+            sdgFeedbackDiv.textContent = 'Set variable(s) first!';
             return;
           }
           a = sdgState.algebraExpr.evalFn(sdgState.xValue, sdgState.yValue);
@@ -985,6 +985,13 @@ function renderSDG() {
       xBtn.style.background = '#eee';
       xBtn.style.color = '#888';
       xBtn.style.borderColor = '#ccc';
+    } else if (sdgState.xValue !== null) {
+      // Gray out and disable if set
+      xBtn.disabled = true;
+      xBtn.style.opacity = '0.45';
+      xBtn.style.background = '#eee';
+      xBtn.style.color = '#888';
+      xBtn.style.borderColor = '#ccc';
     } else {
       xBtn.onclick = function() {
         showVarInputDialog('X', sdgState.xValue, function(val) {
@@ -1010,6 +1017,13 @@ function renderSDG() {
     const exprUsesY = sdgState.algebraExpr && /y/.test(sdgState.algebraExpr.display);
     yBtn.innerHTML = `Y = <b>${sdgState.yValue !== null ? sdgState.yValue : '?'}</b>`;
     if (!exprUsesY) {
+      yBtn.disabled = true;
+      yBtn.style.opacity = '0.45';
+      yBtn.style.background = '#eee';
+      yBtn.style.color = '#888';
+      yBtn.style.borderColor = '#ccc';
+    } else if (sdgState.yValue !== null) {
+      // Gray out and disable if set
       yBtn.disabled = true;
       yBtn.style.opacity = '0.45';
       yBtn.style.background = '#eee';
