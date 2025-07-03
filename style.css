@@ -1,3 +1,33 @@
+/* Variables mode: algebraic expression button */
+.sdg-expr-btn {
+  min-width: 5.5em;
+  max-width: 12em;
+  text-align: center;
+  margin: 0.2em;
+  font-family: inherit;
+  font-size: 1.1em;
+  font-weight: 500;
+  border-radius: 0.7em;
+  border: 2px solid #bdbdbd;
+  background: #fff;
+  color: #222;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* Variables mode: X= and Y= buttons */
+.sdg-var-btn {
+  min-width: 5em;
+  max-width: 10em;
+  margin: 0.2em;
+  font-family: inherit;
+  font-size: 1.1em;
+  font-weight: 500;
+  border-radius: 0.7em;
+  border: 2px solid #bdbdbd;
+  background: #fff8e1;
+  color: #222;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
 /* Prevent sticky hover on mobile by disabling hover when .no-hover is present */
 .sdg-btn.no-hover:hover {
   background: inherit !important;
