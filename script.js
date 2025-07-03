@@ -780,23 +780,33 @@ function renderSDG() {
     const exprBtn = document.createElement('button');
     exprBtn.className = 'sdg-btn sdg-expr-btn';
     exprBtn.disabled = roundFinished;
-    // Live simplification: substitute x/y if set, and show the simplified expression or value
+    // Live simplification: substitute x/y if set, and show the fully reduced value if possible
     let exprStr = sdgState.algebraExpr.display;
-    let simplified = exprStr;
+    let showVal = false;
     let val = null;
-    // Try to substitute x and y if set
+    // Only require variables that are present in the expression
+    const exprStrLower = sdgState.algebraExpr.display.toLowerCase();
+    const needsX = /x/.test(exprStrLower);
+    const needsY = /y/.test(exprStrLower);
+    const xSet = !needsX || sdgState.xValue !== null;
+    const ySet = !needsY || sdgState.yValue !== null;
+    if (xSet && ySet) {
+      try {
+        val = sdgState.algebraExpr.evalFn(
+          needsX ? sdgState.xValue : 0,
+          needsY ? sdgState.yValue : 0
+        );
+        if (isNaN(val) || !isFinite(val)) val = 'NaN';
+        showVal = true;
+      } catch (e) { val = 'NaN'; showVal = true; }
+    }
+    let simplified = exprStr;
     if (sdgState.xValue !== null || sdgState.yValue !== null) {
       // Replace x and y in the display string for a live preview
       simplified = exprStr.replace(/x/g, sdgState.xValue !== null ? `(${sdgState.xValue})` : 'x')
                          .replace(/y/g, sdgState.yValue !== null ? `(${sdgState.yValue})` : 'y');
     }
-    if (sdgState.xValue !== null && sdgState.yValue !== null) {
-      try {
-        val = sdgState.algebraExpr.evalFn(sdgState.xValue, sdgState.yValue);
-        if (isNaN(val) || !isFinite(val)) val = 'NaN';
-      } catch (e) { val = 'NaN'; }
-    }
-    exprBtn.innerHTML = val !== null ? `${simplified}<br><b>${val}</b>` : simplified;
+    exprBtn.innerHTML = showVal ? `<b>${val}</b>` : simplified;
     exprBtn.onclick = function() {
       if (roundFinished) return;
       if (sdgState.selected.length === 0 && !sdgState.pendingOp) {
@@ -842,9 +852,11 @@ function renderSDG() {
         sdgState.steps.push(`${aLabel} ${op} ${bLabel} = ${result}`);
         sdgState.selected = [];
         sdgState.pendingOp = null;
-        if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1 && Math.abs(result - 24) < 1e-6) {
+        // Only end round if one number box (or expr) remains
+        const numRemaining = sdgState.numbers.length - sdgState.used.filter(Boolean).length + (sdgState.algebraExpr ? 1 : 0);
+        if (numRemaining === 1 && Math.abs(result - 24) < 1e-6) {
           sdgState.finished = true;
-        } else if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
+        } else if (numRemaining === 1) {
           sdgState.finished = true;
         }
         window.requestAnimationFrame(renderSDG);
