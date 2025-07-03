@@ -757,10 +757,10 @@ function renderSDG() {
   sdgNumbersDiv.innerHTML = '';
   sdgNumbersDiv.style.display = 'flex';
   sdgNumbersDiv.style.flexWrap = 'nowrap';
-  sdgNumbersDiv.style.justifyContent = 'center';
+  sdgNumbersDiv.style.justifyContent = 'flex-start';
   sdgNumbersDiv.style.gap = '0.3em';
-  // Gather all number/expr strings for measurement
-  let numRowCount = sdgState.numbers.filter((n, i) => !sdgState.used[i]).length;
+  sdgNumbersDiv.style.overflowX = 'auto';
+  // Prepare all number/expr contents for measurement
   let numRowContents = sdgState.numbers.filter((n, i) => !sdgState.used[i]).map(String);
   let exprContent = null;
   if (currentMode === 'variables' && sdgState.algebraExpr) {
@@ -771,12 +771,9 @@ function renderSDG() {
     }
     exprContent = exprStr;
     numRowContents.push(exprContent);
-    numRowCount++;
   }
-  // Try font sizes from largest to smallest until all fit
+  // Font sizes to try per button
   const fontSizes = ["1.15em", "1.05em", "0.95em", "0.85em", "0.75em", "0.65em"];
-  let chosenFontSize = fontSizes[0];
-  let containerWidth = sdgNumbersDiv.offsetWidth || sdgNumbersDiv.clientWidth || 400;
   // Create a hidden div for measurement
   let measureDiv = document.createElement('div');
   measureDiv.style.visibility = 'hidden';
@@ -784,41 +781,48 @@ function renderSDG() {
   measureDiv.style.left = '-9999px';
   measureDiv.style.top = '-9999px';
   measureDiv.style.whiteSpace = 'nowrap';
+  measureDiv.style.fontFamily = 'inherit';
   document.body.appendChild(measureDiv);
-  let boxPadding = 24; // px, estimate for button padding/margin/border
-  let gapPx = 6; // px, estimate for gap between buttons
-  for (let fs of fontSizes) {
-    let maxWidth = 0;
-    for (let content of numRowContents) {
+  // For each content, find the smallest font size that fits in max 12em (arbitrary max for a button)
+  let widths = [];
+  let fontSizeForContent = [];
+  for (let content of numRowContents) {
+    let found = false;
+    for (let fs of fontSizes) {
       measureDiv.style.fontSize = fs;
       measureDiv.textContent = content;
-      let w = measureDiv.offsetWidth + boxPadding;
-      if (w > maxWidth) maxWidth = w;
+      let w = measureDiv.offsetWidth + 24; // 24px padding/margin
+      if (w <= 180) { // 180px ~ 12em
+        widths.push(w);
+        fontSizeForContent.push(fs);
+        found = true;
+        break;
+      }
     }
-    let totalWidth = maxWidth * numRowCount + gapPx * (numRowCount - 1);
-    if (totalWidth <= containerWidth) {
-      chosenFontSize = fs;
-      break;
+    if (!found) {
+      // Use smallest font size and allow overflow
+      measureDiv.style.fontSize = fontSizes[fontSizes.length-1];
+      measureDiv.textContent = content;
+      widths.push(measureDiv.offsetWidth + 24);
+      fontSizeForContent.push(fontSizes[fontSizes.length-1]);
     }
-    // If none fit, will use smallest
-    chosenFontSize = fs;
   }
   document.body.removeChild(measureDiv);
-  // Now render all number buttons with chosenFontSize and equal width
-  let buttonWidth = `calc((100% - ${(numRowCount - 1) * 0.3}em) / ${numRowCount})`;
+  // Render number buttons
+  let numIdx = 0;
   sdgState.numbers.forEach((num, idx) => {
     if (sdgState.used[idx]) return;
     const btn = document.createElement('button');
     btn.textContent = num;
     btn.className = 'sdg-btn';
-    btn.style.flex = `1 1 0`;
-    btn.style.width = buttonWidth;
-    btn.style.fontSize = chosenFontSize;
+    btn.style.flex = '0 0 auto';
+    btn.style.width = widths[numIdx] + 'px';
+    btn.style.fontSize = fontSizeForContent[numIdx];
     btn.style.textAlign = 'center';
     btn.style.margin = '0';
-    btn.style.overflow = 'visible';
+    btn.style.overflow = 'hidden';
     btn.style.textOverflow = 'clip';
-    btn.style.whiteSpace = 'normal';
+    btn.style.whiteSpace = 'nowrap';
     btn.disabled = roundFinished;
     btn.classList.remove('selected');
     if (sdgState.selected.length === 1 && sdgState.selected[0] === idx) {
@@ -904,20 +908,21 @@ function renderSDG() {
       }
     };
     sdgNumbersDiv.appendChild(btn);
+    numIdx++;
   });
   // For variables mode, add the algebraic expression as a button in the number row
   if (currentMode === 'variables' && sdgState.algebraExpr) {
     const exprBtn = document.createElement('button');
     exprBtn.className = 'sdg-btn sdg-expr-btn';
     exprBtn.disabled = roundFinished;
-    exprBtn.style.flex = `1 1 0`;
-    exprBtn.style.width = buttonWidth;
-    exprBtn.style.fontSize = chosenFontSize;
+    exprBtn.style.flex = '0 0 auto';
+    exprBtn.style.width = widths[widths.length-1] + 'px';
+    exprBtn.style.fontSize = fontSizeForContent[fontSizeForContent.length-1];
     exprBtn.style.textAlign = 'center';
     exprBtn.style.margin = '0';
-    exprBtn.style.overflow = 'visible';
+    exprBtn.style.overflow = 'hidden';
     exprBtn.style.textOverflow = 'clip';
-    exprBtn.style.whiteSpace = 'normal';
+    exprBtn.style.whiteSpace = 'nowrap';
     let exprStr = sdgState.algebraExpr.display;
     let showVal = false;
     let val = null;
