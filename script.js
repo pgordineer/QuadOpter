@@ -889,9 +889,11 @@ function renderSDG() {
         sdgState.steps.push(`${aLabel} ${op} ${bLabel} = ${result}`);
         sdgState.selected = [];
         sdgState.pendingOp = null;
-        if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1 && Math.abs(result - 24) < 1e-6) {
+        // Only end round if exactly one usable number remains (not two)
+        const usableCount = sdgState.numbers.reduce((acc, n, i) => acc + (!sdgState.used[i] ? 1 : 0), 0);
+        if (usableCount === 1 && Math.abs(result - 24) < 1e-6) {
           sdgState.finished = true;
-        } else if (sdgState.numbers.length - sdgState.used.filter(Boolean).length === 1) {
+        } else if (usableCount === 1) {
           sdgState.finished = true;
         }
         window.requestAnimationFrame(renderSDG);
@@ -987,10 +989,11 @@ function renderSDG() {
         sdgState.steps.push(`${aLabel} ${op} ${bLabel} = ${result}`);
         sdgState.selected = [];
         sdgState.pendingOp = null;
-        const numRemaining = sdgState.numbers.length - sdgState.used.filter(Boolean).length + (sdgState.algebraExpr ? 1 : 0);
-        if (numRemaining === 1 && Math.abs(result - 24) < 1e-6) {
+        // Only end round if exactly one usable number remains (not two)
+        const usableCountExpr = sdgState.numbers.reduce((acc, n, i) => acc + (!sdgState.used[i] ? 1 : 0), 0);
+        if (usableCountExpr === 1 && Math.abs(result - 24) < 1e-6) {
           sdgState.finished = true;
-        } else if (numRemaining === 1) {
+        } else if (usableCountExpr === 1) {
           sdgState.finished = true;
         }
         window.requestAnimationFrame(renderSDG);
