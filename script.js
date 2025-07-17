@@ -1,3 +1,9 @@
+// Store initial puzzle for variables mode
+let initialVariablesNumbers = null;
+let initialVariablesExprObj = null;
+  // Save initial puzzle for undo
+  initialVariablesNumbers = numbers.slice();
+  initialVariablesExprObj = exprObj;
 // --- Custom Modal Dialog for Variable Input ---
 function showVarInputDialog(varName, currentValue, callback) {
   // Remove any existing dialog
@@ -1349,12 +1355,7 @@ sdgGiveUpBtn.onclick = function() {
 // Undo button logic (restore correct state)
 sdgUndoBtn.onclick = function() {
   if (sdgState.steps.length === 0) {
-    if (currentMode === 'variables') {
-      let { numbers, exprObj } = generateVariablesModePuzzle();
-      startVariablesGame(numbers, exprObj);
-    } else {
-      startSingleDigitsGame(currentNumbers);
-    }
+    // Do nothing if all steps are undone
     return;
   }
   const lastStep = sdgState.steps.pop();
