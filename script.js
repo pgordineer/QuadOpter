@@ -1724,7 +1724,7 @@ let dailyState = {
 function showDailyMode() {
   currentMode = 'daily';
   let { numbers, solution } = generateSolvableDailyMode();
-  dailyState.numbers = numbers.slice();
+  dailyState.numbers = numbers;
   dailyState.used = Array(16).fill(false);
   dailyState.steps = [];
   dailyState.selected = [];
@@ -1941,22 +1941,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       // Remove last step
       dailyState.steps.pop();
-      // Reset grid to current puzzle numbers
-      let { numbers } = generateSolvableDailyMode();
-      dailyState.numbers = numbers.slice();
-      dailyState.used = Array(16).fill(false);
-      dailyState.finished = false;
-      dailyState.selected = [];
-      dailyState.pendingOp = null;
-  if (dailyUndoBtn) {
-    dailyUndoBtn.onclick = function() {
-      if (dailyState.steps.length === 0) {
-        // No steps to undo, do nothing
-        return;
-      }
-      // Remove last step
-      dailyState.steps.pop();
-      // Reset grid to the current puzzle numbers
+      // Reset grid to initial numbers
       let { numbers } = generateSolvableDailyMode();
       dailyState.numbers = numbers.slice();
       dailyState.used = Array(16).fill(false);
@@ -1998,4 +1983,18 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       renderDailyGrid();
     };
-  
+  }
+  if (dailyGiveUpBtn) {
+    dailyGiveUpBtn.onclick = function() {
+      dailyState.finished = true;
+      renderDailyGrid();
+    };
+  }
+  if (dailyBackBtn) {
+    dailyBackBtn.onclick = function() {
+      document.getElementById('daily-mode-game').style.display = 'none';
+      mainMenuDiv.style.display = '';
+    };
+  }
+});
+}
