@@ -1618,10 +1618,7 @@ let dailyModeState = {
   steps: [], // Step history for undo
   finished: false,
   xValue: null,
-  yValue: null,
-  selected: [],
-  _history: [],
-  solution: null
+  yValue: null
 };
 
 function generateDailyModePuzzle() {
