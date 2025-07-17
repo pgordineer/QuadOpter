@@ -724,31 +724,22 @@ if (sdgBackBtn) {
   };
 }
 
-let sdgState = {
-  numbers: [],
-  used: [false, false, false, false],
-  ops: [],
-  expr: [],
-  step: 0,
-  finished: false, // Track if round is finished
-  expUsed: false, // Track if exponential op has been used (for operations mode)
-  expStep: null, // Track which exp op was used (optional, for undo)
-  xValue: null, // For variables mode: current value of x
-  yValue: null  // For variables mode: current value of y
-};
-
-function resetSDGState(numbers) {
-  sdgState.numbers = numbers.slice();
-  sdgState.used = Array(numbers.length).fill(false);
-  sdgState.selected = [];
-  sdgState.pendingOp = null;
-  sdgState.steps = [];
-  sdgState.finished = false;
-  sdgState.expUsed = false;
-  sdgState.expStep = null;
-  sdgState.xValue = null;
-  sdgState.yValue = null;
-  sdgState.algebraExpr = null;
+  sdgState = {
+    numbers: numbers.slice(),
+    used: Array(numbers.length).fill(false),
+    algebraExpr: exprObj,
+    xValue: null,
+    yValue: null,
+    steps: [],
+    selected: [],
+    pendingOp: null,
+    finished: false,
+    expUsed: false,
+    expStep: null,
+    _lastExprObj: exprObj,
+    _initialNumbers: numbers.slice(),
+    _initialExprObj: exprObj
+  };
 }
 
 function renderSDG() {
@@ -1350,8 +1341,8 @@ sdgGiveUpBtn.onclick = function() {
 sdgUndoBtn.onclick = function() {
   if (sdgState.steps.length === 0) {
     if (currentMode === 'variables') {
-      let { numbers, exprObj } = generateVariablesModePuzzle();
-      startVariablesGame(numbers, exprObj);
+      // Restore the original numbers and expression for this round
+      startVariablesGame(sdgState._initialNumbers, sdgState._initialExprObj);
     } else {
       startSingleDigitsGame(currentNumbers);
     }
