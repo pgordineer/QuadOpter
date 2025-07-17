@@ -837,8 +837,9 @@ function renderSDG() {
         let a, b, aLabel = '', bLabel = '', usedExpr = false;
         if (i === 'expr') {
           if (sdgState.algebraExpr) {
-            if ((/x/.test(sdgState.algebraExpr.display) && sdgState.xValue === null) ||
-                (/y/.test(sdgState.algebraExpr.display) && sdgState.yValue === null)) {
+            const needsX = /x/.test(sdgState.algebraExpr.display);
+            const needsY = /y/.test(sdgState.algebraExpr.display);
+            if ((needsX && sdgState.xValue === null) || (needsY && sdgState.yValue === null)) {
               sdgFeedbackDiv.textContent = 'Set variable(s) first!';
               return;
             }
@@ -958,8 +959,10 @@ function renderSDG() {
           return;
         } else {
           a = sdgState.numbers[i];
-          if (sdgState.xValue === null || sdgState.yValue === null) {
-            sdgFeedbackDiv.textContent = 'Set X and Y first!';
+          const needsX = /x/.test(sdgState.algebraExpr.display);
+          const needsY = /y/.test(sdgState.algebraExpr.display);
+          if ((needsX && sdgState.xValue === null) || (needsY && sdgState.yValue === null)) {
+            sdgFeedbackDiv.textContent = 'Set variable(s) first!';
             return;
           }
           b = sdgState.algebraExpr.evalFn(sdgState.xValue, sdgState.yValue);
@@ -1345,7 +1348,15 @@ sdgGiveUpBtn.onclick = function() {
 
 // Undo button logic (restore correct state)
 sdgUndoBtn.onclick = function() {
-  if (sdgState.steps.length === 0) return;
+  if (sdgState.steps.length === 0) {
+    if (currentMode === 'variables') {
+      let { numbers, exprObj } = generateVariablesModePuzzle();
+      startVariablesGame(numbers, exprObj);
+    } else {
+      startSingleDigitsGame(currentNumbers);
+    }
+    return;
+  }
   const lastStep = sdgState.steps.pop();
   // Undo for operations mode exponential op
   if (currentMode === 'operations' && sdgState.expUsed && sdgState.expStep && (lastStep.includes('²') || lastStep.includes('³') || lastStep.startsWith('√') || lastStep.startsWith('∛'))) {
