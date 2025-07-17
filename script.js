@@ -1350,8 +1350,8 @@ sdgGiveUpBtn.onclick = function() {
 sdgUndoBtn.onclick = function() {
   if (sdgState.steps.length === 0) {
     if (currentMode === 'variables') {
-      let { numbers, exprObj } = generateVariablesModePuzzle();
-      startVariablesGame(numbers, exprObj);
+      // Do nothing if no steps to undo in variables mode
+      return;
     } else {
       startSingleDigitsGame(currentNumbers);
     }
