@@ -1722,8 +1722,8 @@ function find24DailyStepwise(nums, allowedOps, expOps, target) {
     for (let i = 0; i < arr.length; ++i) {
       for (let j = 0; j < arr.length; ++j) {
         if (i === j) continue;
-        let a = arr[i], b = arr[j];
         for (let op of allowedOps) {
+          let a = arr[i], b = arr[j];
           let result;
           let symbol = op === '*' ? '×' : op === '/' ? '÷' : op;
           if (op === '+') result = a + b;
@@ -1742,21 +1742,21 @@ function find24DailyStepwise(nums, allowedOps, expOps, target) {
         }
         // Try exponential ops on a or b
         for (let exp of expOps) {
-          if (exp.check(arr[i])) {
-            let ea = exp.fn(arr[i]);
+          if (exp.check(a)) {
+            let ea = exp.fn(a);
             if (!isFinite(ea)) continue;
             let nextExp = arr.slice();
             nextExp[i] = ea;
-            let stepStr = `${exp.str(arr[i])} = ${ea}`;
+            let stepStr = `${exp.str(a)} = ${ea}`;
             let res = helper(nextExp, steps.concat([stepStr]));
             if (res) return res;
           }
-          if (exp.check(arr[j])) {
-            let eb = exp.fn(arr[j]);
+          if (exp.check(b)) {
+            let eb = exp.fn(b);
             if (!isFinite(eb)) continue;
             let nextExp = arr.slice();
             nextExp[j] = eb;
-            let stepStr = `${exp.str(arr[j])} = ${eb}`;
+            let stepStr = `${exp.str(b)} = ${eb}`;
             let res = helper(nextExp, steps.concat([stepStr]));
             if (res) return res;
           }
