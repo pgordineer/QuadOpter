@@ -1578,6 +1578,8 @@ if (integersBtn) {
 
 // --- Daily Mode Calendar Popout (QuadOpter) ---
 // --- Daily Mode: Diamond Grid Game ---
+let dailyModeState = {
+// ...existing code...
 // Daily Mode Undo
 document.getElementById('daily-undo-btn').onclick = function() {
   if (dailyModeState.steps.length === 0) return;
