@@ -1932,52 +1932,64 @@ function renderDailyGrid() {
   }
 }
 
-document.getElementById('daily-undo').onclick = function() {
-  if (dailyState.steps.length === 0) {
-    showDailyMode();
-    return;
+
+document.addEventListener('DOMContentLoaded', function() {
+  var dailyUndoBtn = document.getElementById('daily-undo');
+  var dailyGiveUpBtn = document.getElementById('daily-giveup');
+  var dailyBackBtn = document.getElementById('daily-back');
+  if (dailyUndoBtn) {
+    dailyUndoBtn.onclick = function() {
+      if (dailyState.steps.length === 0) {
+        showDailyMode();
+        return;
+      }
+      const lastStep = dailyState.steps.pop();
+      const match = lastStep.match(/(-?\d+(?:\.\d+)?) ([+\-×÷]) (-?\d+(?:\.\d+)?) = (-?\d+(?:\.\d+)?)/);
+      if (match) {
+        const a = Number(match[1]);
+        const op = match[2];
+        const b = Number(match[3]);
+        const result = Number(match[4]);
+        let resultIdx = dailyState.numbers.lastIndexOf(result);
+        if (resultIdx !== -1) {
+          dailyState.numbers[resultIdx] = b;
+          dailyState.used[resultIdx] = false;
+        }
+        let aIdx = dailyState.numbers.indexOf(a);
+        if (aIdx !== -1) dailyState.used[aIdx] = false;
+        dailyState.finished = false;
+        dailyState.selected = [];
+        dailyState.pendingOp = null;
+        renderDailyGrid();
+        return;
+      }
+      if (lastStep.includes('²') || lastStep.includes('³') || lastStep.startsWith('√') || lastStep.startsWith('∛')) {
+        const resultMatch = lastStep.match(/= (-?\d+(?:\.\d+)?)/);
+        let result = resultMatch ? Number(resultMatch[1]) : null;
+        let resultIdx = dailyState.numbers.lastIndexOf(result);
+        if (resultIdx !== -1) {
+          dailyState.numbers[resultIdx] = 0;
+          dailyState.used[resultIdx] = true;
+        }
+        dailyState.finished = false;
+        dailyState.selected = [];
+        dailyState.pendingOp = null;
+        renderDailyGrid();
+        return;
+      }
+    };
   }
-  const lastStep = dailyState.steps.pop();
-  const match = lastStep.match(/(-?\d+(?:\.\d+)?) ([+\-×÷]) (-?\d+(?:\.\d+)?) = (-?\d+(?:\.\d+)?)/);
-  if (match) {
-    const a = Number(match[1]);
-    const op = match[2];
-    const b = Number(match[3]);
-    const result = Number(match[4]);
-    let resultIdx = dailyState.numbers.lastIndexOf(result);
-    if (resultIdx !== -1) {
-      dailyState.numbers[resultIdx] = b;
-      dailyState.used[resultIdx] = false;
-    }
-    let aIdx = dailyState.numbers.indexOf(a);
-    if (aIdx !== -1) dailyState.used[aIdx] = false;
-    dailyState.finished = false;
-    dailyState.selected = [];
-    dailyState.pendingOp = null;
-    renderDailyGrid();
-    return;
+  if (dailyGiveUpBtn) {
+    dailyGiveUpBtn.onclick = function() {
+      dailyState.finished = true;
+      renderDailyGrid();
+    };
   }
-  if (lastStep.includes('²') || lastStep.includes('³') || lastStep.startsWith('√') || lastStep.startsWith('∛')) {
-    const resultMatch = lastStep.match(/= (-?\d+(?:\.\d+)?)/);
-    let result = resultMatch ? Number(resultMatch[1]) : null;
-    let resultIdx = dailyState.numbers.lastIndexOf(result);
-    if (resultIdx !== -1) {
-      dailyState.numbers[resultIdx] = 0;
-      dailyState.used[resultIdx] = true;
-    }
-    dailyState.finished = false;
-    dailyState.selected = [];
-    dailyState.pendingOp = null;
-    renderDailyGrid();
-    return;
+  if (dailyBackBtn) {
+    dailyBackBtn.onclick = function() {
+      document.getElementById('daily-mode-game').style.display = 'none';
+      mainMenuDiv.style.display = '';
+    };
   }
-};
-document.getElementById('daily-giveup').onclick = function() {
-  dailyState.finished = true;
-  renderDailyGrid();
-};
-document.getElementById('daily-back').onclick = function() {
-  document.getElementById('daily-mode-game').style.display = 'none';
-  mainMenuDiv.style.display = '';
-};
+});
 }
