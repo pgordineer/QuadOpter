@@ -1350,8 +1350,8 @@ sdgGiveUpBtn.onclick = function() {
 sdgUndoBtn.onclick = function() {
   if (sdgState.steps.length === 0) {
     if (currentMode === 'variables') {
-      // Do nothing if no steps to undo in variables mode
-      return;
+      let { numbers, exprObj } = generateVariablesModePuzzle();
+      startVariablesGame(numbers, exprObj);
     } else {
       startSingleDigitsGame(currentNumbers);
     }
@@ -1676,7 +1676,7 @@ if (dailyModeBtn) {
   dailyModeBtn.onclick = function(e) {
     // Only trigger if not clicking the date pill
     if (e.target.closest('#daily-date-pill')) return;
-    // TODO: launch daily mode game logic here
+    showDailyMode();
   };
 }
 if (dailyDatePill) {
@@ -1710,4 +1710,277 @@ if (dailyDatePill) {
       cal.style.zIndex = 1001;
     }, 0);
   };
+// --- Daily Mode Implementation ---
+let dailyState = {
+  numbers: [],
+  used: Array(16).fill(false),
+  steps: [],
+  selected: [],
+  pendingOp: null,
+  finished: false,
+  solution: null,
+};
+
+function showDailyMode() {
+  currentMode = 'daily';
+  let { numbers, solution } = generateSolvableDailyMode();
+  dailyState.numbers = numbers;
+  dailyState.used = Array(16).fill(false);
+  dailyState.steps = [];
+  dailyState.selected = [];
+  dailyState.pendingOp = null;
+  dailyState.finished = false;
+  dailyState.solution = solution;
+  renderDailyGrid();
+  document.getElementById('daily-mode-game').style.display = '';
+  mainMenuDiv.style.display = 'none';
+  document.getElementById('daily-feedback').textContent = '';
+}
+
+function generateSolvableDailyMode() {
+  let ops = ['+', '-', '*', '/'];
+  let expOps = [
+    { fn: x => x * x, str: a => `(${a})²`, check: x => Math.abs(x) < 100 },
+    { fn: x => x * x * x, str: a => `(${a})³`, check: x => Math.abs(x) < 22 },
+    { fn: x => x >= 0 ? Math.sqrt(x) : NaN, str: a => `√(${a})`, check: x => x >= 0 },
+    { fn: x => Math.cbrt(x), str: a => `∛(${a})`, check: x => true }
+  ];
+  let maxTries = 20000;
+  for (let tries = 0; tries < maxTries; ++tries) {
+    let nums = [];
+    while (nums.length < 16) {
+      let n = randInt(-99, 99);
+      if (Math.abs(n) > 9) nums.push(n);
+    }
+    let solution = find24Daily(nums, ops, expOps, 24);
+    if (solution) {
+      return { numbers: nums, solution };
+    }
+  }
+  let nums = [];
+  while (nums.length < 16) {
+    let n = randInt(-99, 99);
+    if (Math.abs(n) > 9) nums.push(n);
+  }
+  return { numbers: nums, solution: null };
+}
+
+function find24Daily(nums, allowedOps, expOps, target) {
+  for (let i = 0; i < nums.length; ++i) {
+    for (let j = 0; j < nums.length; ++j) {
+      if (i === j) continue;
+      for (let op of allowedOps) {
+        let a = nums[i], b = nums[j];
+        let result = evalBinary(a, op, b);
+        if (Math.abs(result - target) < 1e-6 && isFinite(result)) {
+          return [`${a} ${op} ${b} = ${result}`];
+        }
+        for (let exp of expOps) {
+          if (exp.check(a)) {
+            let ea = exp.fn(a);
+            let r2 = evalBinary(ea, op, b);
+            if (Math.abs(r2 - target) < 1e-6 && isFinite(r2)) {
+              return [`${exp.str(a)} = ${ea}`, `${ea} ${op} ${b} = ${r2}`];
+            }
+          }
+          if (exp.check(b)) {
+            let eb = exp.fn(b);
+            let r2 = evalBinary(a, op, eb);
+            if (Math.abs(r2 - target) < 1e-6 && isFinite(r2)) {
+              return [`${exp.str(b)} = ${eb}`, `${a} ${op} ${eb} = ${r2}`];
+            }
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function renderDailyGrid() {
+  for (let i = 0; i < 16; ++i) {
+    const cell = document.getElementById(`cell-${i}`);
+    cell.className = 'diamond-cell';
+    cell.textContent = dailyState.used[i] ? '' : dailyState.numbers[i];
+    if (dailyState.used[i]) cell.classList.add('blank');
+    if (dailyState.selected.length === 1 && dailyState.selected[0] === i) cell.classList.add('selected');
+    cell.onclick = function() {
+      if (dailyState.finished || dailyState.used[i]) return;
+      if (dailyState.selected.length === 0 && !dailyState.pendingOp) {
+        dailyState.selected = [i];
+        renderDailyGrid();
+      } else if (dailyState.selected.length === 1 && dailyState.pendingOp && dailyState.selected[0] !== i) {
+        let aIdx = dailyState.selected[0], bIdx = i;
+        let a = dailyState.numbers[aIdx], b = dailyState.numbers[bIdx];
+        let op = dailyState.pendingOp;
+        let result;
+        if (op === '+') result = a + b;
+        else if (op === '-') result = a - b;
+        else if (op === '×' || op === '*') result = a * b;
+        else if (op === '÷' || op === '/') {
+          if (b === 0) {
+            document.getElementById('daily-feedback').textContent = '❌ Division by zero!';
+            return;
+          }
+          result = a / b;
+        }
+        dailyState.used[aIdx] = true;
+        dailyState.numbers[bIdx] = result;
+        dailyState.steps.push(`${a} ${op} ${b} = ${result}`);
+        dailyState.selected = [];
+        dailyState.pendingOp = null;
+        let usableCount = dailyState.numbers.reduce((acc, n, idx) => acc + (!dailyState.used[idx] ? 1 : 0), 0);
+        if (usableCount === 1 && Math.abs(result - 24) < 1e-6) {
+          dailyState.finished = true;
+        } else if (usableCount === 1) {
+          dailyState.finished = true;
+        }
+        renderDailyGrid();
+      } else if (dailyState.selected.length === 1 && !dailyState.pendingOp) {
+        if (dailyState.selected[0] !== i) {
+          dailyState.selected = [i];
+          renderDailyGrid();
+        }
+      }
+    };
+  }
+  const opsRow = document.getElementById('daily-ops-row');
+  opsRow.innerHTML = '';
+  ['+', '-', '×', '÷'].forEach(op => {
+    const btn = document.createElement('button');
+    btn.textContent = op;
+    btn.className = 'sdg-op-btn';
+    btn.disabled = dailyState.finished || dailyState.selected.length !== 1;
+    btn.onclick = function() {
+      if (dailyState.finished || dailyState.selected.length !== 1) return;
+      dailyState.pendingOp = op;
+      renderDailyGrid();
+    };
+    if (dailyState.pendingOp === op) btn.style.background = '#ffe082';
+    opsRow.appendChild(btn);
+  });
+  ['x²','x³','√x','∛x'].forEach((label, idx) => {
+    const btn = document.createElement('button');
+    btn.innerHTML = label;
+    btn.className = 'sdg-op-btn';
+    btn.disabled = dailyState.finished || dailyState.selected.length !== 1;
+    btn.onclick = function() {
+      if (btn.disabled) return;
+      const expOps = ['square','cube','sqrt','cbrt'];
+      const exp = expOps[idx];
+      const i = dailyState.selected[0];
+      let a = dailyState.numbers[i];
+      let result, stepStr;
+      if (exp === 'square') {
+        result = a * a;
+        stepStr = `${a}² = ${result}`;
+      } else if (exp === 'cube') {
+        result = a * a * a;
+        stepStr = `${a}³ = ${result}`;
+      } else if (exp === 'sqrt') {
+        if (a < 0) {
+          document.getElementById('daily-feedback').textContent = '❌ Cannot sqrt negative!';
+          return;
+        }
+        result = Math.sqrt(a);
+        stepStr = `√${a} = ${result}`;
+      } else if (exp === 'cbrt') {
+        result = Math.cbrt(a);
+        stepStr = `∛${a} = ${result}`;
+      }
+      dailyState.used[i] = true;
+      let blankIdx = dailyState.used.findIndex(u => u);
+      if (blankIdx === -1) blankIdx = i;
+      dailyState.numbers[blankIdx] = result;
+      dailyState.used[blankIdx] = false;
+      dailyState.steps.push(stepStr);
+      dailyState.selected = [];
+      dailyState.pendingOp = null;
+      renderDailyGrid();
+    };
+    opsRow.appendChild(btn);
+  });
+  const stepList = document.getElementById('daily-step-list');
+  stepList.innerHTML = dailyState.steps.map(s => `<div>${s}</div>`).join('');
+  const feedbackDiv = document.getElementById('daily-feedback');
+  if (dailyState.finished) {
+    let usableIdx = dailyState.numbers.findIndex((n, idx) => !dailyState.used[idx]);
+    let result = usableIdx !== -1 ? dailyState.numbers[usableIdx] : null;
+    if (Math.abs(result - 24) < 1e-6) {
+      let html = `<div style='color:#1976d2;'><div>🎉 Correct!</div>`;
+      if (dailyState.solution) {
+        html += `<div style='margin-top:0.5em;'>Solution:</div>`;
+        for (const step of dailyState.solution) {
+          html += `<div><b>${step}</b></div>`;
+        }
+      }
+      html += `</div>`;
+      feedbackDiv.innerHTML = html;
+    } else {
+      feedbackDiv.innerHTML = `<span style='color:#c00;'>Not 24!</span>`;
+    }
+  } else {
+    feedbackDiv.textContent = '';
+  }
+}
+
+document.getElementById('daily-undo').onclick = function() {
+  if (dailyState.steps.length === 0) {
+    showDailyMode();
+    return;
+  }
+  const lastStep = dailyState.steps.pop();
+  const match = lastStep.match(/(-?\d+(?:\.\d+)?) ([+\-×÷]) (-?\d+(?:\.\d+)?) = (-?\d+(?:\.\d+)?)/);
+  if (match) {
+    const a = Number(match[1]);
+    const op = match[2];
+    const b = Number(match[3]);
+    const result = Number(match[4]);
+    let resultIdx = dailyState.numbers.lastIndexOf(result);
+    if (resultIdx !== -1) {
+      dailyState.numbers[resultIdx] = b;
+      dailyState.used[resultIdx] = false;
+    }
+    let aIdx = dailyState.numbers.indexOf(a);
+    if (aIdx !== -1) dailyState.used[aIdx] = false;
+    dailyState.finished = false;
+    dailyState.selected = [];
+    dailyState.pendingOp = null;
+    renderDailyGrid();
+    return;
+  }
+  if (lastStep.includes('²') || lastStep.includes('³') || lastStep.startsWith('√') || lastStep.startsWith('∛')) {
+    const resultMatch = lastStep.match(/= (-?\d+(?:\.\d+)?)/);
+    let result = resultMatch ? Number(resultMatch[1]) : null;
+    let resultIdx = dailyState.numbers.lastIndexOf(result);
+    if (resultIdx !== -1) {
+      dailyState.numbers[resultIdx] = 0;
+      dailyState.used[resultIdx] = true;
+    }
+    dailyState.finished = false;
+    dailyState.selected = [];
+    dailyState.pendingOp = null;
+    renderDailyGrid();
+    return;
+  }
+};
+document.getElementById('daily-giveup').onclick = function() {
+  dailyState.finished = true;
+  let feedbackDiv = document.getElementById('daily-feedback');
+  let html = '';
+  if (dailyState.solution) {
+    html = `<div style='color:#c00;'><div>Solution:</div>`;
+    for (const step of dailyState.solution) {
+      html += `<div><b>${step}</b></div>`;
+    }
+    html += `</div>`;
+  } else {
+    html = `<span style='color:#c00;'>Solution: <b>No solution found</b></span>`;
+  }
+  feedbackDiv.innerHTML = html;
+};
+document.getElementById('daily-back').onclick = function() {
+  document.getElementById('daily-mode-game').style.display = 'none';
+  mainMenuDiv.style.display = '';
+};
 }
