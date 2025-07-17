@@ -1714,11 +1714,19 @@ if (dailyDatePill) {
 // Recursive stepwise solver for daily mode (uses all numbers)
 function find24DailyStepwise(nums, allowedOps, expOps, target) {
   // Helper to recursively combine numbers
+  const seen = new Set();
+  function arrKey(arr) {
+    // Sort and join for state uniqueness
+    return arr.slice().sort((a,b)=>a-b).join(',');
+  }
   function helper(arr, steps) {
     if (arr.length === 1) {
       if (Math.abs(arr[0] - target) < 1e-6) return steps;
       return null;
     }
+    const key = arrKey(arr);
+    if (seen.has(key)) return null;
+    seen.add(key);
     for (let i = 0; i < arr.length; ++i) {
       for (let j = 0; j < arr.length; ++j) {
         if (i === j) continue;
@@ -1736,6 +1744,8 @@ function find24DailyStepwise(nums, allowedOps, expOps, target) {
           if (!isFinite(result)) continue;
           let next = arr.filter((_, idx) => idx !== i && idx !== j);
           next.push(result);
+          let nextKey = arrKey(next);
+          if (seen.has(nextKey)) continue;
           let stepStr = `${a} ${symbol} ${b} = ${result}`;
           let res = helper(next, steps.concat([stepStr]));
           if (res) return res;
@@ -1747,6 +1757,8 @@ function find24DailyStepwise(nums, allowedOps, expOps, target) {
             if (!isFinite(ea)) continue;
             let nextExp = arr.slice();
             nextExp[i] = ea;
+            let nextKey = arrKey(nextExp);
+            if (seen.has(nextKey)) continue;
             let stepStr = `${exp.str(arr[i])} = ${ea}`;
             let res = helper(nextExp, steps.concat([stepStr]));
             if (res) return res;
@@ -1756,6 +1768,8 @@ function find24DailyStepwise(nums, allowedOps, expOps, target) {
             if (!isFinite(eb)) continue;
             let nextExp = arr.slice();
             nextExp[j] = eb;
+            let nextKey = arrKey(nextExp);
+            if (seen.has(nextKey)) continue;
             let stepStr = `${exp.str(arr[j])} = ${eb}`;
             let res = helper(nextExp, steps.concat([stepStr]));
             if (res) return res;
