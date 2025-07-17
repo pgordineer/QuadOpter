@@ -1,4 +1,80 @@
 /* --- Modal Dialog Styles for Variable Input (theme-matching) --- */
+/* --- Daily Mode Diamond Grid Styles --- */
+.diamond-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3em;
+  margin: 1.2em auto 1.2em auto;
+  width: 100%;
+  max-width: 420px;
+}
+.diamond-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.3em;
+  margin-bottom: 0.1em;
+}
+.diamond-cell {
+  width: 3.2em;
+  height: 3.2em;
+  background: #f0f4fa;
+  border: 2px solid #1976d2;
+  border-radius: 0.5em;
+  box-shadow: 0 1px 4px #1976d211;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25em;
+  font-weight: 500;
+  color: #1976d2;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, border 0.18s;
+  position: relative;
+  margin: 0.1em;
+}
+.diamond-cell.blank {
+  background: #bbb;
+  color: #fff;
+  border-color: #ccc;
+  cursor: default;
+}
+.diamond-cell.selected {
+  background: #ffe082 !important;
+  color: #222 !important;
+  border-color: #fbc02d !important;
+}
+.diamond-row-1 { margin-left: 6.4em; }
+.diamond-row-2 { margin-left: 4.8em; }
+.diamond-row-3 { margin-left: 3.2em; }
+.diamond-row-4 { margin-left: 0em; }
+.diamond-row-5 { margin-left: 3.2em; }
+.diamond-row-6 { margin-left: 4.8em; }
+.diamond-row-7 { margin-left: 6.4em; }
+.daily-ops-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.5em;
+  margin: 1em 0 0.7em 0;
+}
+.daily-step-list {
+  margin: 0.7em 0 0.7em 0;
+  font-size: 1.08em;
+  color: #1976d2;
+}
+.daily-actions {
+  display: flex;
+  gap: 1em;
+  justify-content: center;
+  margin: 1em 0 0.5em 0;
+}
+.sdg-feedback {
+  margin-top: 1em;
+  font-size: 1.1em;
+  text-align: center;
+  min-height: 2em;
+}
 .sdg-modal-bg {
   position: fixed;
   left: 0; top: 0; width: 100vw; height: 100vh;

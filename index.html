@@ -79,4 +79,29 @@
   });
   </script>
 </body>
-</html>
+    <div id="main-menu">
+        <!-- ...existing code... -->
+    </div>
+
+    <!-- Daily Mode Diamond Grid -->
+    <div id="daily-mode-game" style="display:none;">
+        <div class="game-mode-title">Daily Mode</div>
+        <div id="daily-diamond-grid" class="diamond-grid">
+            <!-- Diamond grid rows: 1,2,3,4,3,2,1 -->
+            <div class="diamond-row diamond-row-1"><div class="diamond-cell" id="cell-0"></div></div>
+            <div class="diamond-row diamond-row-2"><div class="diamond-cell" id="cell-1"></div><div class="diamond-cell" id="cell-2"></div></div>
+            <div class="diamond-row diamond-row-3"><div class="diamond-cell" id="cell-3"></div><div class="diamond-cell" id="cell-4"></div><div class="diamond-cell" id="cell-5"></div></div>
+            <div class="diamond-row diamond-row-4"><div class="diamond-cell" id="cell-6"></div><div class="diamond-cell" id="cell-7"></div><div class="diamond-cell" id="cell-8"></div><div class="diamond-cell" id="cell-9"></div></div>
+            <div class="diamond-row diamond-row-5"><div class="diamond-cell" id="cell-10"></div><div class="diamond-cell" id="cell-11"></div><div class="diamond-cell" id="cell-12"></div></div>
+            <div class="diamond-row diamond-row-6"><div class="diamond-cell" id="cell-13"></div><div class="diamond-cell" id="cell-14"></div></div>
+            <div class="diamond-row diamond-row-7"><div class="diamond-cell" id="cell-15"></div></div>
+        </div>
+        <div id="daily-ops-row" class="daily-ops-row"></div>
+        <div id="daily-step-list" class="daily-step-list"></div>
+        <div class="daily-actions">
+            <button id="daily-undo" class="sdg-action-btn">Undo</button>
+            <button id="daily-giveup" class="sdg-action-btn">Give Up</button>
+            <button id="daily-back" class="sdg-action-btn">Back to Main Menu</button>
+        </div>
+        <div id="daily-feedback" class="sdg-feedback"></div>
+    </div>
