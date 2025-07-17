@@ -1664,7 +1664,71 @@ function generateDailyModePuzzle() {
       idx++;
     }
   }
-  return { grid, exprObj };
+  // Brute-force solver for diamond grid
+  function solveDiamondGrid(grid, exprObj) {
+    function copyGrid(g) { return g.map(cell => ({...cell})); }
+    function unusedIndices(g) { return g.map((cell, i) => cell.used ? null : i).filter(i => i !== null); }
+    function cellValue(cell, x, y) { return cell.isExpr ? exprObj.evalFn(x, y) : cell.value; }
+    for (let x = -24; x <= 24; ++x) {
+      for (let y = -24; y <= 24; ++y) {
+        function search(g, steps) {
+          let unused = unusedIndices(g);
+          if (unused.length === 1) {
+            let val = cellValue(g[unused[0]], x, y);
+            if (Math.abs(val - 24) < 1e-6 && isFinite(val)) {
+              let stepStrs = [`X = ${x}`, `Y = ${y}`].filter(Boolean).concat(steps);
+              return stepStrs.join('<br>');
+            }
+            return null;
+          }
+          for (let i = 0; i < unused.length; ++i) {
+            for (let j = 0; j < unused.length; ++j) {
+              if (i === j) continue;
+              let idxA = unused[i], idxB = unused[j];
+              let a = cellValue(g[idxA], x, y);
+              let b = cellValue(g[idxB], x, y);
+              for (let op of ['+', '-', '*', '/']) {
+                let result;
+                if (op === '+') result = a + b;
+                else if (op === '-') result = a - b;
+                else if (op === '*') result = a * b;
+                else if (op === '/') { if (b === 0) continue; result = a / b; }
+                if (!isFinite(result)) continue;
+                let g2 = copyGrid(g);
+                g2[idxA].used = true;
+                g2[idxB].value = result;
+                g2[idxB].used = false;
+                let stepStr = `${a} ${op} ${b} = ${result}`;
+                let found = search(g2, steps.concat([stepStr]));
+                if (found) return found;
+              }
+              for (let exp of ['square','cube','sqrt','cbrt']) {
+                let result, stepStr;
+                if (exp === 'square') { result = a * a; stepStr = `${a}² = ${result}`; }
+                else if (exp === 'cube') { result = a * a * a; stepStr = `${a}³ = ${result}`; }
+                else if (exp === 'sqrt') { if (a < 0) continue; result = Math.sqrt(a); stepStr = `√${a} = ${result}`; }
+                else if (exp === 'cbrt') { result = Math.cbrt(a); stepStr = `∛${a} = ${result}`; }
+                if (!isFinite(result)) continue;
+                let g2 = copyGrid(g);
+                g2[idxA].used = true;
+                g2[idxB].value = result;
+                g2[idxB].used = false;
+                let found = search(g2, steps.concat([stepStr]));
+                if (found) return found;
+              }
+            }
+          }
+          return null;
+        }
+        let initialSteps = [];
+        let solution = search(grid, initialSteps);
+        if (solution) return solution;
+      }
+    }
+    return null;
+  }
+  let solution = solveDiamondGrid(grid, exprObj);
+  return { grid, exprObj, solution };
 }
 
 function startDailyModeGame() {
@@ -1956,15 +2020,17 @@ const dailyDateText = document.getElementById('daily-date-text');
 if (dailyDateText) {
   dailyDateText.textContent = getTodayDateStr();
 }
-if (dailyModeBtn) {
-  dailyModeBtn.onclick = function(e) {
-    // Only trigger if not clicking the date pill
-    if (e.target.closest('#daily-date-pill')) return;
-    // Launch daily mode game
-    document.getElementById('main-menu').style.display = 'none';
-    startDailyModeGame();
-  };
-}
+document.addEventListener('DOMContentLoaded', function() {
+  if (dailyModeBtn) {
+    dailyModeBtn.onclick = function(e) {
+      // Only trigger if not clicking the date pill
+      if (e.target.closest('#daily-date-pill')) return;
+      // Launch daily mode game
+      document.getElementById('main-menu').style.display = 'none';
+      startDailyModeGame();
+    };
+  }
+});
 if (dailyDatePill) {
   dailyDatePill.onclick = function(e) {
     e.stopPropagation();
