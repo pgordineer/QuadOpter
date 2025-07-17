@@ -1940,43 +1940,52 @@ document.addEventListener('DOMContentLoaded', function() {
   if (dailyUndoBtn) {
     dailyUndoBtn.onclick = function() {
       if (dailyState.steps.length === 0) {
-        showDailyMode();
+        // No steps to undo, do nothing
         return;
       }
-      const lastStep = dailyState.steps.pop();
-      const match = lastStep.match(/(-?\d+(?:\.\d+)?) ([+\-×÷]) (-?\d+(?:\.\d+)?) = (-?\d+(?:\.\d+)?)/);
-      if (match) {
-        const a = Number(match[1]);
-        const op = match[2];
-        const b = Number(match[3]);
-        const result = Number(match[4]);
-        let resultIdx = dailyState.numbers.lastIndexOf(result);
-        if (resultIdx !== -1) {
-          dailyState.numbers[resultIdx] = b;
-          dailyState.used[resultIdx] = false;
+      // Remove last step
+      dailyState.steps.pop();
+      // Reset grid to initial numbers
+      let { numbers } = generateSolvableDailyMode();
+      dailyState.numbers = numbers.slice();
+      dailyState.used = Array(16).fill(false);
+      dailyState.finished = false;
+      dailyState.selected = [];
+      dailyState.pendingOp = null;
+      // Replay all steps
+      for (const step of dailyState.steps) {
+        // Binary op
+        const match = step.match(/(-?\d+(?:\.\d+)?) ([+\-×÷]) (-?\d+(?:\.\d+)?) = (-?\d+(?:\.\d+)?)/);
+        if (match) {
+          const a = Number(match[1]);
+          const op = match[2];
+          const b = Number(match[3]);
+          const result = Number(match[4]);
+          let aIdx = dailyState.numbers.findIndex((n, idx) => !dailyState.used[idx] && n === a);
+          let bIdx = dailyState.numbers.findIndex((n, idx) => !dailyState.used[idx] && n === b && idx !== aIdx);
+          if (aIdx !== -1 && bIdx !== -1) {
+            dailyState.used[aIdx] = true;
+            dailyState.numbers[bIdx] = result;
+          }
+          continue;
         }
-        let aIdx = dailyState.numbers.indexOf(a);
-        if (aIdx !== -1) dailyState.used[aIdx] = false;
-        dailyState.finished = false;
-        dailyState.selected = [];
-        dailyState.pendingOp = null;
-        renderDailyGrid();
-        return;
-      }
-      if (lastStep.includes('²') || lastStep.includes('³') || lastStep.startsWith('√') || lastStep.startsWith('∛')) {
-        const resultMatch = lastStep.match(/= (-?\d+(?:\.\d+)?)/);
-        let result = resultMatch ? Number(resultMatch[1]) : null;
-        let resultIdx = dailyState.numbers.lastIndexOf(result);
-        if (resultIdx !== -1) {
-          dailyState.numbers[resultIdx] = 0;
-          dailyState.used[resultIdx] = true;
+        // Exponential op
+        const expMatch = step.match(/^([√∛]?)(-?\d+(?:\.\d+)?)(?:²|³)? = (-?\d+(?:\.\d+)?)/);
+        if (expMatch) {
+          const input = Number(expMatch[2]);
+          const result = Number(expMatch[3]);
+          let inputIdx = dailyState.numbers.findIndex((n, idx) => !dailyState.used[idx] && n === input);
+          if (inputIdx !== -1) {
+            dailyState.used[inputIdx] = true;
+            // Place result in first blank
+            let blankIdx = dailyState.used.findIndex(u => u);
+            if (blankIdx === -1) blankIdx = inputIdx;
+            dailyState.numbers[blankIdx] = result;
+            dailyState.used[blankIdx] = false;
+          }
         }
-        dailyState.finished = false;
-        dailyState.selected = [];
-        dailyState.pendingOp = null;
-        renderDailyGrid();
-        return;
       }
+      renderDailyGrid();
     };
   }
   if (dailyGiveUpBtn) {
