@@ -1577,6 +1577,290 @@ if (integersBtn) {
 }
 
 // --- Daily Mode Calendar Popout (QuadOpter) ---
+// --- Daily Mode: Diamond Grid Game ---
+// Daily Mode Undo
+document.getElementById('daily-undo-btn').onclick = function() {
+  if (dailyModeState.steps.length === 0) return;
+  // For simplicity, store a history of grid states for undo
+  if (!dailyModeState._history) dailyModeState._history = [];
+  if (dailyModeState._history.length > 0) {
+    const prev = dailyModeState._history.pop();
+    dailyModeState.grid = JSON.parse(JSON.stringify(prev.grid));
+    dailyModeState.xValue = prev.xValue;
+    dailyModeState.yValue = prev.yValue;
+    dailyModeState.finished = prev.finished;
+    dailyModeState.selected = [];
+    dailyModeState.steps.pop();
+    renderDailyMode();
+  }
+};
+
+// Daily Mode Next
+document.getElementById('daily-next-btn').onclick = function() {
+  startDailyModeGame();
+};
+  // Save history for undo
+  if (!dailyModeState._history) dailyModeState._history = [];
+  if (dailyModeState.steps.length > dailyModeState._history.length) {
+    dailyModeState._history.push({
+      grid: JSON.parse(JSON.stringify(dailyModeState.grid)),
+      xValue: dailyModeState.xValue,
+      yValue: dailyModeState.yValue,
+      finished: dailyModeState.finished
+    });
+  }
+  // Show Next button if finished
+  document.getElementById('daily-next-btn').style.display = dailyModeState.finished ? '' : 'none';
+let dailyModeState = {
+  numbers: [], // Array of 15 numbers
+  exprObj: null, // Algebraic expression object
+  grid: [], // Array of 16 grid cells: { value, used, isExpr }
+  steps: [], // Step history for undo
+  finished: false,
+  xValue: null,
+  yValue: null
+};
+
+function generateDailyModePuzzle() {
+  // Generate 15 random double-digit integers (-24 to 24, nonzero)
+  let nums = [];
+  while (nums.length < 15) {
+    let n = randInt(-24, 24);
+    if (n !== 0) nums.push(n);
+  }
+  // Pick a random algebraic expression
+  const templates = [
+    () => { let c = randInt(2, 4); return { display: `${c}(x+y)`, evalFn: (x, y) => c * (x + y) }; },
+    () => { let c = randInt(2, 4), d = randInt(1, 6); return { display: `${c}(y-2)+${d}`, evalFn: (x, y) => c * (y - 2) + d }; },
+    () => { let c = randInt(2, 4), d = randInt(1, 6); return { display: `${c}x²+${d}`, evalFn: (x, y) => c * x * x + d }; },
+    () => { let d = randInt(1, 6); return { display: `y³/y²-${d}`, evalFn: (x, y) => (y !== 0 ? y * y * y / (y * y) - d : NaN) }; },
+    () => { return { display: '(-2x-6x)/-4', evalFn: (x, y) => ((-2 * x - 6 * x) / -4) }; },
+    () => { return { display: 'x²-2y²', evalFn: (x, y) => x * x - 2 * y * y }; },
+    () => { return { display: '(x²+2)/(y²)', evalFn: (x, y) => (y !== 0 ? (x * x + 2) / (y * y) : NaN) }; },
+    () => { let a = randInt(2, 3), b = randInt(2, 4); return { display: `${a}x+${b}y`, evalFn: (x, y) => a * x + b * y }; },
+    () => { return { display: '(x-y)²', evalFn: (x, y) => (x - y) * (x - y) }; },
+    () => { let d = randInt(2, 5); return { display: `(y+4)²-${d}`, evalFn: (x, y) => (y + 4) * (y + 4) - d }; },
+    () => { return { display: '(x+1)(y-1)', evalFn: (x, y) => (x + 1) * (y - 1) }; },
+    () => { return { display: '(x³-y³)/x', evalFn: (x, y) => (x !== 0 ? (x * x * x - y * y * y) / x : NaN) }; },
+    () => { let a = randInt(2, 3), b = randInt(2, 4); return { display: `${a}x²+${b}y²`, evalFn: (x, y) => a * x * x + b * y * y }; },
+    () => { let d = randInt(2, 6); return { display: `x+y+${d}`, evalFn: (x, y) => x + y + d }; },
+    () => { return { display: '(x²+y²)/2', evalFn: (x, y) => (x * x + y * y) / 2 }; },
+    () => { return { display: '(3x-2y)+5', evalFn: (x, y) => (3 * x - 2 * y) + 5 }; },
+    () => { return { display: '(x/y)+4', evalFn: (x, y) => (y !== 0 ? (x / y) + 4 : NaN) }; }
+  ];
+  const exprObj = templates[randInt(0, templates.length - 1)]();
+  // Place numbers and expression in diamond grid
+  // Diamond: rows of 1,2,3,4,3,2,1 (total 16)
+  let grid = [];
+  let layout = [1,2,3,4,3,2,1];
+  let idx = 0;
+  for (let r = 0; r < layout.length; ++r) {
+    for (let c = 0; c < layout[r]; ++c) {
+      if (idx === 8) {
+        grid.push({ value: exprObj.display, used: false, isExpr: true });
+      } else {
+        grid.push({ value: nums.shift(), used: false, isExpr: false });
+      }
+      idx++;
+    }
+  }
+  return { grid, exprObj };
+}
+
+function startDailyModeGame() {
+  const { grid, exprObj } = generateDailyModePuzzle();
+  dailyModeState.grid = grid;
+  dailyModeState.exprObj = exprObj;
+  dailyModeState.steps = [];
+  dailyModeState.finished = false;
+  dailyModeState.xValue = null;
+  dailyModeState.yValue = null;
+  renderDailyMode();
+  document.getElementById('daily-mode-game').style.display = '';
+}
+
+function renderDailyMode() {
+  // Render diamond grid
+  const gridDiv = document.getElementById('daily-diamond-grid');
+  gridDiv.innerHTML = '';
+  const layout = [1,2,3,4,3,2,1];
+  let idx = 0;
+  for (let r = 0; r < layout.length; ++r) {
+    const rowDiv = document.createElement('div');
+    rowDiv.style.display = 'flex';
+    rowDiv.style.justifyContent = 'center';
+    rowDiv.style.marginBottom = '0.2em';
+    // Center row by adding left/right margin
+    let margin = (4 - layout[r]) * 1.2;
+    rowDiv.style.marginLeft = margin + 'em';
+    rowDiv.style.marginRight = margin + 'em';
+    for (let c = 0; c < layout[r]; ++c) {
+      const cell = dailyModeState.grid[idx];
+      const btn = document.createElement('button');
+      btn.style.width = '3.2em';
+      btn.style.height = '3.2em';
+      btn.style.margin = '0.1em';
+      btn.style.fontSize = '1.1em';
+      btn.style.textAlign = 'center';
+      btn.style.borderRadius = '0.7em';
+      btn.style.border = '2px solid #888';
+      btn.style.background = cell.used ? '#eee' : (cell.isExpr ? '#e3f2fd' : '#fff');
+      btn.style.color = cell.used ? '#aaa' : (cell.isExpr ? '#1976d2' : '#222');
+      btn.disabled = cell.used || dailyModeState.finished;
+      btn.textContent = cell.used ? '' : cell.value;
+      btn.onclick = function() {
+        if (dailyModeState.finished || cell.used) return;
+        // Select cells for operation
+        if (!dailyModeState.selected) dailyModeState.selected = [];
+        if (dailyModeState.selected.length === 0) {
+          dailyModeState.selected = [idx];
+        } else if (dailyModeState.selected.length === 1 && dailyModeState.selected[0] !== idx) {
+          dailyModeState.selected.push(idx);
+        } else if (dailyModeState.selected.includes(idx)) {
+          dailyModeState.selected = dailyModeState.selected.filter(i => i !== idx);
+        }
+        renderDailyMode();
+      };
+      // Highlight selected cells
+      if (dailyModeState.selected && dailyModeState.selected.includes(idx)) {
+        btn.style.background = '#ffe082';
+        btn.style.borderColor = '#fbc02d';
+      }
+      rowDiv.appendChild(btn);
+      idx++;
+    }
+    gridDiv.appendChild(rowDiv);
+  }
+  // Render exponential operations row
+  const opsRow = document.getElementById('daily-ops-row');
+  opsRow.innerHTML = '';
+  const expOps = ['x²','x³','√x','∛x'];
+  expOps.forEach((label, idx) => {
+    const btn = document.createElement('button');
+    btn.innerHTML = label;
+    btn.className = 'sdg-op-btn';
+    btn.style.margin = '0.2em';
+    btn.style.minWidth = '2.5em';
+    btn.style.maxWidth = '5em';
+    btn.disabled = dailyModeState.finished || !dailyModeState.selected || dailyModeState.selected.length !== 1;
+    btn.onclick = function() {
+      if (!dailyModeState.selected || dailyModeState.selected.length !== 1) return;
+      const i = dailyModeState.selected[0];
+      const cell = dailyModeState.grid[i];
+      let a = cell.isExpr ? dailyModeState.exprObj.evalFn(
+        /x/.test(dailyModeState.exprObj.display) ? dailyModeState.xValue : 0,
+        /y/.test(dailyModeState.exprObj.display) ? dailyModeState.yValue : 0
+      ) : cell.value;
+      let result, stepStr;
+      if (idx === 0) { result = a * a; stepStr = `${a}² = ${result}`; }
+      else if (idx === 1) { result = a * a * a; stepStr = `${a}³ = ${result}`; }
+      else if (idx === 2) { if (a < 0) { dailyModeState.steps.push('❌ Cannot sqrt negative!'); renderDailyMode(); return; } result = Math.sqrt(a); stepStr = `√${a} = ${result}`; }
+      else if (idx === 3) { result = Math.cbrt(a); stepStr = `∛${a} = ${result}`; }
+      dailyModeState.grid[i].used = true;
+      dailyModeState.grid[dailyModeState.selected[0]].value = result;
+      dailyModeState.grid[dailyModeState.selected[0]].used = false;
+      dailyModeState.steps.push(stepStr);
+      dailyModeState.selected = [];
+      renderDailyMode();
+    };
+    opsRow.appendChild(btn);
+  });
+
+  // Render variable input row
+  const varRow = document.getElementById('daily-var-row');
+  varRow.innerHTML = '';
+  // X button
+  const xBtn = document.createElement('button');
+  xBtn.className = 'sdg-op-btn sdg-var-btn';
+  xBtn.innerHTML = `X = <b>${dailyModeState.xValue !== null ? dailyModeState.xValue : '?'}</b>`;
+  xBtn.disabled = dailyModeState.finished || !(/x/.test(dailyModeState.exprObj.display)) || dailyModeState.xValue !== null;
+  xBtn.style.margin = '0.2em';
+  xBtn.onclick = function() {
+    showVarInputDialog('X', dailyModeState.xValue, function(val) {
+      if (val === null) return;
+      if (val === dailyModeState.xValue) return;
+      dailyModeState.steps.push(`X = ${val}`);
+      dailyModeState.xValue = val;
+      renderDailyMode();
+    });
+  };
+  varRow.appendChild(xBtn);
+  // Y button
+  const yBtn = document.createElement('button');
+  yBtn.className = 'sdg-op-btn sdg-var-btn';
+  yBtn.innerHTML = `Y = <b>${dailyModeState.yValue !== null ? dailyModeState.yValue : '?'}</b>`;
+  yBtn.disabled = dailyModeState.finished || !(/y/.test(dailyModeState.exprObj.display)) || dailyModeState.yValue !== null;
+  yBtn.style.margin = '0.2em';
+  yBtn.onclick = function() {
+    showVarInputDialog('Y', dailyModeState.yValue, function(val) {
+      if (val === null) return;
+      if (val === dailyModeState.yValue) return;
+      dailyModeState.steps.push(`Y = ${val}`);
+      dailyModeState.yValue = val;
+      renderDailyMode();
+    });
+  };
+  varRow.appendChild(yBtn);
+
+  // Render step list
+  const stepList = document.getElementById('daily-step-list');
+  stepList.innerHTML = dailyModeState.steps.map(s => `<div>${s}</div>`).join('');
+
+  // Render feedback
+  const feedbackDiv = document.getElementById('daily-feedback');
+  feedbackDiv.textContent = dailyModeState.finished ? '🎉 Correct! You made 24.' : '';
+
+  // If two cells are selected, show op buttons for binary ops
+  if (dailyModeState.selected && dailyModeState.selected.length === 2 && !dailyModeState.finished) {
+    const binOps = ['+', '-', '×', '÷'];
+    binOps.forEach(op => {
+      const opBtn = document.createElement('button');
+      opBtn.textContent = op;
+      opBtn.className = 'sdg-op-btn';
+      opBtn.style.margin = '0.2em';
+      opBtn.onclick = function() {
+        const i = dailyModeState.selected[0];
+        const j = dailyModeState.selected[1];
+        const cellA = dailyModeState.grid[i];
+        const cellB = dailyModeState.grid[j];
+        let a = cellA.isExpr ? dailyModeState.exprObj.evalFn(
+          /x/.test(dailyModeState.exprObj.display) ? dailyModeState.xValue : 0,
+          /y/.test(dailyModeState.exprObj.display) ? dailyModeState.yValue : 0
+        ) : cellA.value;
+        let b = cellB.isExpr ? dailyModeState.exprObj.evalFn(
+          /x/.test(dailyModeState.exprObj.display) ? dailyModeState.xValue : 0,
+          /y/.test(dailyModeState.exprObj.display) ? dailyModeState.yValue : 0
+        ) : cellB.value;
+        let result;
+        if (op === '+') result = a + b;
+        else if (op === '-') result = a - b;
+        else if (op === '×') result = a * b;
+        else if (op === '÷') {
+          if (b === 0) {
+            dailyModeState.steps.push('❌ Division by zero!');
+            dailyModeState.selected = [];
+            renderDailyMode();
+            return;
+          }
+          result = a / b;
+        }
+        // Blank A, put result in B
+        dailyModeState.grid[i].used = true;
+        dailyModeState.grid[j].value = result;
+        dailyModeState.grid[j].used = false;
+        dailyModeState.steps.push(`${a} ${op} ${b} = ${result}`);
+        dailyModeState.selected = [];
+        // Check win condition: any cell with value 24 and all others used
+        let remaining = dailyModeState.grid.filter(cell => !cell.used);
+        if (remaining.length === 1 && Math.abs(remaining[0].value - 24) < 1e-6) {
+          dailyModeState.finished = true;
+        }
+        renderDailyMode();
+      };
+      feedbackDiv.appendChild(opBtn);
+    });
+  }
+}
 let dailySelectedDate = null;
 let calendarMonth = null;
 let calendarYear = null;
@@ -1676,7 +1960,9 @@ if (dailyModeBtn) {
   dailyModeBtn.onclick = function(e) {
     // Only trigger if not clicking the date pill
     if (e.target.closest('#daily-date-pill')) return;
-    // TODO: launch daily mode game logic here
+    // Launch daily mode game
+    document.getElementById('main-menu').style.display = 'none';
+    startDailyModeGame();
   };
 }
 if (dailyDatePill) {
