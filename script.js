@@ -1846,6 +1846,9 @@ function renderDailyGrid() {
   }
   const opsRow = document.getElementById('daily-ops-row');
   opsRow.innerHTML = '';
+  // Standard operations row
+  const stdOpsDiv = document.createElement('div');
+  stdOpsDiv.className = 'ops-row';
   ['+', '-', '×', '÷'].forEach(op => {
     const btn = document.createElement('button');
     btn.textContent = op;
@@ -1857,8 +1860,12 @@ function renderDailyGrid() {
       renderDailyGrid();
     };
     if (dailyState.pendingOp === op) btn.style.background = '#ffe082';
-    opsRow.appendChild(btn);
+    stdOpsDiv.appendChild(btn);
   });
+  opsRow.appendChild(stdOpsDiv);
+  // Exponential operations row
+  const expOpsDiv = document.createElement('div');
+  expOpsDiv.className = 'ops-row';
   ['x²','x³','√x','∛x'].forEach((label, idx) => {
     const btn = document.createElement('button');
     btn.innerHTML = label;
@@ -1898,8 +1905,9 @@ function renderDailyGrid() {
       dailyState.pendingOp = null;
       renderDailyGrid();
     };
-    opsRow.appendChild(btn);
+    expOpsDiv.appendChild(btn);
   });
+  opsRow.appendChild(expOpsDiv);
   const stepList = document.getElementById('daily-step-list');
   stepList.innerHTML = dailyState.steps.map(s => `<div>${s}</div>`).join('');
   const feedbackDiv = document.getElementById('daily-feedback');
@@ -1966,18 +1974,7 @@ document.getElementById('daily-undo').onclick = function() {
 };
 document.getElementById('daily-giveup').onclick = function() {
   dailyState.finished = true;
-  let feedbackDiv = document.getElementById('daily-feedback');
-  let html = '';
-  if (dailyState.solution) {
-    html = `<div style='color:#c00;'><div>Solution:</div>`;
-    for (const step of dailyState.solution) {
-      html += `<div><b>${step}</b></div>`;
-    }
-    html += `</div>`;
-  } else {
-    html = `<span style='color:#c00;'>Solution: <b>No solution found</b></span>`;
-  }
-  feedbackDiv.innerHTML = html;
+  renderDailyGrid();
 };
 document.getElementById('daily-back').onclick = function() {
   document.getElementById('daily-mode-game').style.display = 'none';
