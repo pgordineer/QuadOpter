@@ -69,7 +69,6 @@ function showVarInputDialog(varName, currentValue, callback) {
   setTimeout(() => { input.focus(); input.select(); }, 50);
   modal.appendChild(box);
   document.body.appendChild(modal);
-}
 // --- Prevent double-tap zoom on mobile browsers ---
 // This disables double-tap zoom for all buttons and the main game area
 // (Best effort: some browsers may require viewport meta tag changes in HTML)
@@ -1579,7 +1578,17 @@ if (integersBtn) {
 // --- Daily Mode Calendar Popout (QuadOpter) ---
 // --- Daily Mode: Diamond Grid Game ---
 let dailyModeState = {
-// ...existing code...
+  numbers: [], // Array of 15 numbers
+  exprObj: null, // Algebraic expression object
+  grid: [], // Array of 16 grid cells: { value, used, isExpr }
+  steps: [], // Step history for undo
+  finished: false,
+  xValue: null,
+  yValue: null,
+  selected: [],
+  _history: [],
+  solution: null
+};
 // Daily Mode Undo
 document.getElementById('daily-undo-btn').onclick = function() {
   if (dailyModeState.steps.length === 0) return;
@@ -1600,30 +1609,6 @@ document.getElementById('daily-undo-btn').onclick = function() {
 // Daily Mode Next
 document.getElementById('daily-next-btn').onclick = function() {
   startDailyModeGame();
-};
-  // Save history for undo
-  if (!dailyModeState._history) dailyModeState._history = [];
-  if (dailyModeState.steps.length > dailyModeState._history.length) {
-    dailyModeState._history.push({
-      grid: JSON.parse(JSON.stringify(dailyModeState.grid)),
-      xValue: dailyModeState.xValue,
-      yValue: dailyModeState.yValue,
-      finished: dailyModeState.finished
-    });
-  }
-  // Show Next button if finished
-  document.getElementById('daily-next-btn').style.display = dailyModeState.finished ? '' : 'none';
-let dailyModeState = {
-  numbers: [], // Array of 15 numbers
-  exprObj: null, // Algebraic expression object
-  grid: [], // Array of 16 grid cells: { value, used, isExpr }
-  steps: [], // Step history for undo
-  finished: false,
-  xValue: null,
-  yValue: null,
-  selected: [],
-  _history: [],
-  solution: null
 };
 
 function generateDailyModePuzzle() {
@@ -1669,6 +1654,9 @@ function generateDailyModePuzzle() {
       idx++;
     }
   }
+  // End of diamond grid generation
+  // The rest of the function (solver, return) should be outside this function
+}
   // Brute-force solver for diamond grid
   function solveDiamondGrid(grid, exprObj) {
     function copyGrid(g) { return g.map(cell => ({...cell})); }
