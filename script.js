@@ -1711,62 +1711,6 @@ if (dailyDatePill) {
     }, 0);
   };
 // --- Daily Mode Implementation ---
-// Recursive stepwise solver for daily mode (uses all numbers)
-function find24DailyStepwise(nums, allowedOps, expOps, target) {
-  // Helper to recursively combine numbers
-  function helper(arr, steps) {
-    if (arr.length === 1) {
-      if (Math.abs(arr[0] - target) < 1e-6) return steps;
-      return null;
-    }
-    for (let i = 0; i < arr.length; ++i) {
-      for (let j = 0; j < arr.length; ++j) {
-        if (i === j) continue;
-        for (let op of allowedOps) {
-          let a = arr[i], b = arr[j];
-          let result;
-          let symbol = op === '*' ? '×' : op === '/' ? '÷' : op;
-          if (op === '+') result = a + b;
-          else if (op === '-') result = a - b;
-          else if (op === '*' || op === '×') result = a * b;
-          else if (op === '/' || op === '÷') {
-            if (b === 0) continue;
-            result = a / b;
-          } else continue;
-          if (!isFinite(result)) continue;
-          let next = arr.filter((_, idx) => idx !== i && idx !== j);
-          next.push(result);
-          let stepStr = `${a} ${symbol} ${b} = ${result}`;
-          let res = helper(next, steps.concat([stepStr]));
-          if (res) return res;
-        }
-        // Try exponential ops on a or b
-        for (let exp of expOps) {
-          if (exp.check(a)) {
-            let ea = exp.fn(a);
-            if (!isFinite(ea)) continue;
-            let nextExp = arr.slice();
-            nextExp[i] = ea;
-            let stepStr = `${exp.str(a)} = ${ea}`;
-            let res = helper(nextExp, steps.concat([stepStr]));
-            if (res) return res;
-          }
-          if (exp.check(b)) {
-            let eb = exp.fn(b);
-            if (!isFinite(eb)) continue;
-            let nextExp = arr.slice();
-            nextExp[j] = eb;
-            let stepStr = `${exp.str(b)} = ${eb}`;
-            let res = helper(nextExp, steps.concat([stepStr]));
-            if (res) return res;
-          }
-        }
-      }
-    }
-    return null;
-  }
-  return helper(nums, []);
-}
 let dailyState = {
   numbers: [],
   used: Array(16).fill(false),
@@ -1810,7 +1754,7 @@ function generateSolvableDailyMode() {
       let n = randInt(-99, 99);
       if (Math.abs(n) > 9) nums.push(n);
     }
-    solution = find24DailyStepwise(nums, ops, expOps, 24);
+    solution = find24Daily(nums, ops, expOps, 24);
     tries++;
   } while (!solution);
   return { numbers: nums, solution };
