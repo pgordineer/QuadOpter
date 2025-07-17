@@ -889,11 +889,12 @@ function renderSDG() {
         sdgState.steps.push(`${aLabel} ${op} ${bLabel} = ${result}`);
         sdgState.selected = [];
         sdgState.pendingOp = null;
-        // Only end round if exactly one usable number remains (not two)
+        // Only end round if exactly one usable number remains (not two), and algebraic expression is not present
         const usableCount = sdgState.numbers.reduce((acc, n, i) => acc + (!sdgState.used[i] ? 1 : 0), 0);
-        if (usableCount === 1 && Math.abs(result - 24) < 1e-6) {
+        const algebraUsedUp = !sdgState.algebraExpr;
+        if (algebraUsedUp && usableCount === 1 && Math.abs(result - 24) < 1e-6) {
           sdgState.finished = true;
-        } else if (usableCount === 1) {
+        } else if (algebraUsedUp && usableCount === 1) {
           sdgState.finished = true;
         }
         window.requestAnimationFrame(renderSDG);
@@ -989,11 +990,12 @@ function renderSDG() {
         sdgState.steps.push(`${aLabel} ${op} ${bLabel} = ${result}`);
         sdgState.selected = [];
         sdgState.pendingOp = null;
-        // Only end round if exactly one usable number remains (not two)
+        // Only end round if exactly one usable number remains (not two), and algebraic expression is not present
         const usableCountExpr = sdgState.numbers.reduce((acc, n, i) => acc + (!sdgState.used[i] ? 1 : 0), 0);
-        if (usableCountExpr === 1 && Math.abs(result - 24) < 1e-6) {
+        const algebraUsedUpExpr = !sdgState.algebraExpr;
+        if (algebraUsedUpExpr && usableCountExpr === 1 && Math.abs(result - 24) < 1e-6) {
           sdgState.finished = true;
-        } else if (usableCountExpr === 1) {
+        } else if (algebraUsedUpExpr && usableCountExpr === 1) {
           sdgState.finished = true;
         }
         window.requestAnimationFrame(renderSDG);
