@@ -1746,23 +1746,18 @@ function generateSolvableDailyMode() {
     { fn: x => Math.cbrt(x), str: a => `∛(${a})`, check: x => true }
   ];
   let maxTries = 20000;
-  for (let tries = 0; tries < maxTries; ++tries) {
-    let nums = [];
+  let nums, solution;
+  let tries = 0;
+  do {
+    nums = [];
     while (nums.length < 16) {
       let n = randInt(-99, 99);
       if (Math.abs(n) > 9) nums.push(n);
     }
-    let solution = find24Daily(nums, ops, expOps, 24);
-    if (solution) {
-      return { numbers: nums, solution };
-    }
-  }
-  let nums = [];
-  while (nums.length < 16) {
-    let n = randInt(-99, 99);
-    if (Math.abs(n) > 9) nums.push(n);
-  }
-  return { numbers: nums, solution: null };
+    solution = find24Daily(nums, ops, expOps, 24);
+    tries++;
+  } while (!solution);
+  return { numbers: nums, solution };
 }
 
 function find24Daily(nums, allowedOps, expOps, target) {
@@ -1914,19 +1909,20 @@ function renderDailyGrid() {
   if (dailyState.finished) {
     let usableIdx = dailyState.numbers.findIndex((n, idx) => !dailyState.used[idx]);
     let result = usableIdx !== -1 ? dailyState.numbers[usableIdx] : null;
+    let html = '';
     if (Math.abs(result - 24) < 1e-6) {
-      let html = `<div style='color:#1976d2;'><div>🎉 Correct!</div>`;
-      if (dailyState.solution) {
-        html += `<div style='margin-top:0.5em;'>Solution:</div>`;
-        for (const step of dailyState.solution) {
-          html += `<div><b>${step}</b></div>`;
-        }
-      }
-      html += `</div>`;
-      feedbackDiv.innerHTML = html;
+      html += `<div style='color:#1976d2;'><div>🎉 Correct!</div>`;
     } else {
-      feedbackDiv.innerHTML = `<span style='color:#c00;'>Not 24!</span>`;
+      html += `<span style='color:#c00;'>Not 24!</span>`;
     }
+    if (dailyState.solution) {
+      html += `<div style='margin-top:0.5em;'>Solution:</div>`;
+      for (const step of dailyState.solution) {
+        html += `<div><b>${step}</b></div>`;
+      }
+    }
+    html += `</div>`;
+    feedbackDiv.innerHTML = html;
   } else {
     feedbackDiv.textContent = '';
   }
