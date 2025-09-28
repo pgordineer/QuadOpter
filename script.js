@@ -787,12 +787,12 @@ function updateSDGInstructions() {
     // User has selected a number and operation, needs second number
     const selectedNum = sdgState.selected[0];
     let numText = selectedNum === 'expr' ? 'expression' : sdgState.numbers[selectedNum];
-    instructionText = `${numText} ${sdgState.pendingOp} ? → Select the second number`;
+    instructionText = `${numText} ${sdgState.pendingOp} ? → Select the second number (or click operation again to deselect)`;
   } else if (sdgState.selected.length === 1) {
     // User has selected a number, needs operation
     const selectedNum = sdgState.selected[0];
     let numText = selectedNum === 'expr' ? 'expression' : sdgState.numbers[selectedNum];
-    instructionText = `${numText} ? → Choose an operation (+, -, ×, ÷)`;
+    instructionText = `${numText} ? → Choose an operation (+, -, ×, ÷) or click again to deselect`;
   } else {
     // No selection, provide mode-specific instruction
     if (currentMode === 'variables') {
@@ -801,12 +801,12 @@ function updateSDGInstructions() {
       } else if (sdgState.yValue === null && /y/.test(sdgState.algebraExpr?.display || '')) {
         instructionText = 'Set the value of Y using the numbers';
       } else {
-        instructionText = 'Combine numbers and operations to make 24!';
+        instructionText = 'Select a number to build an expression that equals 24! (Click again to deselect)';
       }
     } else if (currentMode === 'operations') {
-      instructionText = 'Use numbers and operations (including powers/roots) to make 24!';
+      instructionText = 'Select a number to use operations (including powers/roots) to make 24! (Click again to deselect)';
     } else {
-      instructionText = 'Select a number to start building an expression that equals 24!';
+      instructionText = 'Select a number to start building an expression that equals 24! (Click again to deselect)';
     }
   }
   
@@ -977,6 +977,10 @@ function renderSDG() {
         if (sdgState.selected[0] !== idx) {
           sdgState.selected = [idx];
           window.requestAnimationFrame(renderSDG);
+        } else {
+          // Clicked the same number again, deselect it
+          sdgState.selected = [];
+          window.requestAnimationFrame(renderSDG);
         }
       }
     };
@@ -1080,6 +1084,10 @@ function renderSDG() {
         if (sdgState.selected[0] !== 'expr') {
           sdgState.selected = ['expr'];
           window.requestAnimationFrame(renderSDG);
+        } else {
+          // Clicked the same expression again, deselect it
+          sdgState.selected = [];
+          window.requestAnimationFrame(renderSDG);
         }
       }
     };
@@ -1109,7 +1117,12 @@ function renderSDG() {
     btn.disabled = roundFinished || sdgState.selected.length !== 1;
     btn.onclick = function() {
       if (roundFinished || sdgState.selected.length !== 1) return;
-      sdgState.pendingOp = op;
+      if (sdgState.pendingOp === op) {
+        // Clicked the same operation again, deselect it
+        sdgState.pendingOp = null;
+      } else {
+        sdgState.pendingOp = op;
+      }
       renderSDG();
     };
     if (sdgState.pendingOp === op) btn.style.background = '#ffe082';
@@ -1855,7 +1868,12 @@ function renderChallengeGame() {
       
       if (!challengeState.pendingOp) {
         // First number selection
-        challengeState.selectedNumber = idx;
+        if (challengeState.selectedNumber === idx) {
+          // Clicked the same number again, deselect it
+          challengeState.selectedNumber = null;
+        } else {
+          challengeState.selectedNumber = idx;
+        }
         renderChallengeGame();
       } else {
         // Second number selection - perform operation
@@ -1888,7 +1906,12 @@ function renderChallengeGame() {
     
     btn.onclick = function() {
       if (btn.disabled) return;
-      challengeState.pendingOp = op;
+      if (challengeState.pendingOp === op) {
+        // Clicked the same operation again, deselect it
+        challengeState.pendingOp = null;
+      } else {
+        challengeState.pendingOp = op;
+      }
       renderChallengeGame();
     };
     
@@ -1900,11 +1923,11 @@ function renderChallengeGame() {
   if (challengeState.finished) {
     instructionText = 'Game finished! Use the buttons below to continue.';
   } else if (challengeState.selectedNumber === null && !challengeState.pendingOp) {
-    instructionText = 'Select a number to start';
+    instructionText = 'Select a number to start (click again to deselect)';
   } else if (challengeState.selectedNumber !== null && !challengeState.pendingOp) {
-    instructionText = `Selected: ${challengeState.numbers[challengeState.selectedNumber]} - Now select an operation`;
+    instructionText = `Selected: ${challengeState.numbers[challengeState.selectedNumber]} - Now select an operation (click again to deselect)`;
   } else if (challengeState.pendingOp && challengeState.selectedNumber !== null) {
-    instructionText = `${challengeState.numbers[challengeState.selectedNumber]} ${challengeState.pendingOp} ? - Select second number`;
+    instructionText = `${challengeState.numbers[challengeState.selectedNumber]} ${challengeState.pendingOp} ? - Select second number (click operation again to deselect)`;
   }
   
   // Update the instruction display
