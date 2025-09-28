@@ -33,16 +33,7 @@
       <button id="integers-mode-btn" class="main-menu-btn">Integers</button>
       <button id="operations-mode-btn" class="main-menu-btn">Operations</button>
       <button id="variables-mode-btn" class="main-menu-btn">Variables</button>
-      <button id="daily-mode-btn" class="main-menu-btn" style="display:block;position:relative;padding-bottom:0.2em;">
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;">
-          <span id="daily-btn-label" style="display:block;">Daily</span>
-          <span id="daily-date-pill" class="date-pill" style="margin-top:0.5em;margin-left:auto;margin-right:auto;display:block;width:max-content;align-items:center;gap:0.3em;padding:0.25em 0.9em 0.25em 0.8em;font-size:0.98em;background:#f0f4fa;color:#1976d2;border-radius:999px;border:1.5px solid #1976d2;box-shadow:0 1px 4px #1976d211;cursor:pointer;transition:background 0.18s;">
-            <span id="daily-date-text"></span>
-            <span style="font-size:0.98em;margin-left:0.5em;">Click to change</span>
-          </span>
-        </div>
-      </button>
-      <div id="daily-calendar" class="main-menu-calendar" style="display:none;z-index:1001;"></div>
+      <button id="challenge-mode-btn" class="main-menu-btn">Challenge</button>
       <div id="congrats" style="display:none;"></div>
     </div>
     <!-- Single Digits Game Area -->
@@ -58,6 +49,26 @@
       </div>
       <div id="sdg-feedback" style="min-height:2em;font-size:1.1em;margin-bottom:1em;"></div>
     </div>
+    
+    <!-- Challenge Mode - Le compte est bon -->
+    <div id="challenge-mode-game" style="display:none;">
+        <div class="game-mode-title">Challenge Mode</div>
+        <div class="challenge-instructions">Use the 6 numbers and basic operations (+, -, ×, ÷) to reach the target. Select number → operation → number!</div>
+        <div id="challenge-target" class="challenge-target"></div>
+        <div id="challenge-timer" class="challenge-timer"></div>
+        <div id="challenge-numbers" class="challenge-numbers"></div>
+        <div id="challenge-ops-row" class="challenge-ops-row"></div>
+        <div id="challenge-step-list" class="challenge-step-list"></div>
+        <div class="challenge-actions">
+            <button id="challenge-undo" class="sdg-action-btn">Undo</button>
+            <button id="challenge-give-up" class="sdg-action-btn">Give Up</button>
+            <button id="challenge-reset" class="sdg-action-btn">Reset</button>
+            <button id="challenge-new" class="sdg-action-btn">New Challenge</button>
+            <button id="challenge-back" class="sdg-action-btn">Back to Main Menu</button>
+        </div>
+        <div id="challenge-feedback" class="sdg-feedback"></div>
+    </div>
+    
     <footer>
       <p>Created by <a href="https://github.com/pgordineer" target="_blank">@pgordineer</a></p>
     </footer>
@@ -79,29 +90,4 @@
   });
   </script>
 </body>
-    <div id="main-menu">
-        <!-- ...existing code... -->
-    </div>
-
-    <!-- Daily Mode Diamond Grid -->
-    <div id="daily-mode-game" style="display:none;">
-        <div class="game-mode-title">Daily Mode</div>
-        <div id="daily-diamond-grid" class="diamond-grid">
-            <!-- Diamond grid rows: 1,2,3,4,3,2,1 -->
-            <div class="diamond-row diamond-row-1"><div class="diamond-cell" id="cell-0"></div></div>
-            <div class="diamond-row diamond-row-2"><div class="diamond-cell" id="cell-1"></div><div class="diamond-cell" id="cell-2"></div></div>
-            <div class="diamond-row diamond-row-3"><div class="diamond-cell" id="cell-3"></div><div class="diamond-cell" id="cell-4"></div><div class="diamond-cell" id="cell-5"></div></div>
-            <div class="diamond-row diamond-row-4"><div class="diamond-cell" id="cell-6"></div><div class="diamond-cell" id="cell-7"></div><div class="diamond-cell" id="cell-8"></div><div class="diamond-cell" id="cell-9"></div></div>
-            <div class="diamond-row diamond-row-5"><div class="diamond-cell" id="cell-10"></div><div class="diamond-cell" id="cell-11"></div><div class="diamond-cell" id="cell-12"></div></div>
-            <div class="diamond-row diamond-row-6"><div class="diamond-cell" id="cell-13"></div><div class="diamond-cell" id="cell-14"></div></div>
-            <div class="diamond-row diamond-row-7"><div class="diamond-cell" id="cell-15"></div></div>
-        </div>
-        <div id="daily-ops-row" class="daily-ops-row"></div>
-        <div id="daily-step-list" class="daily-step-list"></div>
-        <div class="daily-actions">
-            <button id="daily-undo" class="sdg-action-btn">Undo</button>
-            <button id="daily-giveup" class="sdg-action-btn">Give Up</button>
-            <button id="daily-back" class="sdg-action-btn">Back to Main Menu</button>
-        </div>
-        <div id="daily-feedback" class="sdg-feedback"></div>
-    </div>
+</html>

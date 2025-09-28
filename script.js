@@ -1576,425 +1576,515 @@ if (integersBtn) {
   integersBtn.addEventListener('click', showIntegersMode);
 }
 
-// --- Daily Mode Calendar Popout (QuadOpter) ---
-let dailySelectedDate = null;
-let calendarMonth = null;
-let calendarYear = null;
-
-function getTodayDateStr() {
-  const today = new Date();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
-  const yyyy = today.getFullYear();
-  return `${mm}/${dd}/${yyyy}`;
-}
-
-function renderDailyCalendar(selectedDateStr) {
-  let selDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
-  if (isNaN(selDate)) selDate = new Date();
-  calendarMonth = selDate.getMonth();
-  calendarYear = selDate.getFullYear();
-  const firstDay = new Date(calendarYear, calendarMonth, 1);
-  const startDay = firstDay.getDay();
-  const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
-  let html = `<div class='calendar-header'>`;
-  html += `<button id='cal-prev' type='button'>&lt;</button>`;
-  html += `<span>${firstDay.toLocaleString('default', { month: 'long' })} ${calendarYear}</span>`;
-  html += `<button id='cal-next' type='button'>&gt;</button>`;
-  html += `</div>`;
-  html += `<div class='calendar-grid'>`;
-  ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(d => html += `<div style='font-weight:bold;color:#888;'>${d}</div>`);
-  html += `</div><div class='calendar-grid'>`;
-  for (let i = 0; i < startDay; i++) html += `<div></div>`;
-  const today = new Date();
-  const todayStr = getTodayDateStr();
-  for (let d = 1; d <= daysInMonth; d++) {
-    const mm = String(calendarMonth + 1).padStart(2, '0');
-    const dd = String(d).padStart(2, '0');
-    const dateStr = `${mm}/${dd}/${calendarYear}`;
-    let classes = 'calendar-day';
-    const [cm, cd, cy] = [parseInt(mm), parseInt(dd), parseInt(calendarYear)];
-    const [tm, td, ty] = [today.getMonth() + 1, today.getDate(), today.getFullYear()];
-    let isFuture = (cy > ty) || (cy === ty && cm > tm) || (cy === ty && cm === tm && cd > td);
-    if (dateStr === todayStr) classes += ' today';
-    if (dateStr === dailySelectedDate) classes += ' selected';
-    if (isFuture) classes += ' future';
-    html += `<div class='${classes}' data-date='${dateStr}'>${d}</div>`;
-  }
-  html += `</div>`;
-  const dailyCalendarDiv = document.getElementById('daily-calendar');
-  dailyCalendarDiv.innerHTML = html;
-  dailyCalendarDiv.style.display = 'block';
-}
-
-// Event delegation for calendar
-const dailyCalendarDiv = document.getElementById('daily-calendar');
-dailyCalendarDiv.onclick = function(e) {
-  e.stopPropagation();
-  const prevBtn = e.target.closest('#cal-prev');
-  const nextBtn = e.target.closest('#cal-next');
-  const dayDiv = e.target.closest('.calendar-day');
-  if (prevBtn) {
-    calendarMonth--;
-    if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
-    renderDailyCalendar(`${String(calendarMonth+1).padStart(2,'0')}/01/${calendarYear}`);
-    return;
-  }
-  if (nextBtn) {
-    calendarMonth++;
-    if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
-    renderDailyCalendar(`${String(calendarMonth+1).padStart(2,'0')}/01/${calendarYear}`);
-    return;
-  }
-  if (dayDiv && !dayDiv.classList.contains('future')) {
-    const dateStr = dayDiv.getAttribute('data-date');
-    dailyCalendarDiv.style.display = 'none';
-    document.getElementById('daily-date-text').textContent = dateStr;
-    dailySelectedDate = dateStr;
-    return;
-  }
-};
-
-// Hide calendar on body click (except when clicking the pill or calendar)
-document.body.addEventListener('click', function(e) {
-  const calendar = document.getElementById('daily-calendar');
-  const pill = document.getElementById('daily-date-pill');
-  if (!calendar || !pill) return;
-  if (calendar.style.display !== 'block') return;
-  if (calendar.contains(e.target) || pill.contains(e.target)) return;
-  calendar.style.display = 'none';
-});
-
-// Daily mode button and pill click logic
-const dailyModeBtn = document.getElementById('daily-mode-btn');
-const dailyDatePill = document.getElementById('daily-date-pill');
-const dailyDateText = document.getElementById('daily-date-text');
-if (dailyDateText) {
-  dailyDateText.textContent = getTodayDateStr();
-}
-if (dailyModeBtn) {
-  dailyModeBtn.onclick = function(e) {
-    // Only trigger if not clicking the date pill
-    if (e.target.closest('#daily-date-pill')) return;
-    showDailyMode();
-  };
-}
-if (dailyDatePill) {
-  dailyDatePill.onclick = function(e) {
-    e.stopPropagation();
-    const dailyCalendarDiv = document.getElementById('daily-calendar');
-    if (dailyCalendarDiv.style.display === 'block') {
-      dailyCalendarDiv.style.display = 'none';
-      return;
-    }
-    renderDailyCalendar(dailySelectedDate || getTodayDateStr());
-    // Position the calendar below the button
-    const dailyBtn = document.getElementById('daily-mode-btn');
-    const cal = dailyCalendarDiv;
-    cal.style.display = 'block';
-    cal.style.visibility = 'hidden';
-    cal.style.position = 'fixed';
-    cal.style.minWidth = '270px';
-    cal.style.maxWidth = '340px';
-    cal.style.width = '';
-    cal.style.textAlign = 'center';
-    setTimeout(() => {
-      const calHeight = cal.offsetHeight;
-      const calWidth = cal.offsetWidth;
-      const dailyRect = dailyBtn.getBoundingClientRect();
-      const left = Math.round(dailyRect.left + (dailyRect.width/2) - (calWidth/2));
-      const top = Math.round(dailyRect.bottom);
-      cal.style.left = left + 'px';
-      cal.style.top = top + 'px';
-      cal.style.visibility = 'visible';
-      cal.style.zIndex = 1001;
-    }, 0);
-  };
-// --- Daily Mode Implementation ---
-let dailyState = {
+// --- Challenge Mode Implementation (Le compte est bon) ---
+let challengeState = {
   numbers: [],
-  used: Array(16).fill(false),
+  originalNumbers: [],
+  target: 0,
   steps: [],
-  selected: [],
+  selectedNumber: null,
   pendingOp: null,
   finished: false,
-  solution: null,
+  usedNumbers: [],
+  startTime: null,
+  timerInterval: null,
+  solution: null
 };
 
-function showDailyMode() {
-  currentMode = 'daily';
-  let { numbers, solution } = generateSolvableDailyMode();
-  dailyState.numbers = numbers;
-  dailyState.used = Array(16).fill(false);
-  dailyState.steps = [];
-  dailyState.selected = [];
-  dailyState.pendingOp = null;
-  dailyState.finished = false;
-  dailyState.solution = solution;
-  renderDailyGrid();
-  document.getElementById('daily-mode-game').style.display = '';
+function showChallengeMode() {
+  currentMode = 'challenge';
+  generateNewChallenge();
+  document.getElementById('challenge-mode-game').style.display = '';
   mainMenuDiv.style.display = 'none';
-  document.getElementById('daily-feedback').textContent = '';
+  // Clear any previous feedback
+  document.getElementById('challenge-feedback').innerHTML = '';
+  renderChallengeGame();
 }
 
-function generateSolvableDailyMode() {
-  let ops = ['+', '-', '*', '/'];
-  let expOps = [
-    { fn: x => x * x, str: a => `(${a})²`, check: x => Math.abs(x) < 100 },
-    { fn: x => x * x * x, str: a => `(${a})³`, check: x => Math.abs(x) < 22 },
-    { fn: x => x >= 0 ? Math.sqrt(x) : NaN, str: a => `√(${a})`, check: x => x >= 0 },
-    { fn: x => Math.cbrt(x), str: a => `∛(${a})`, check: x => true }
-  ];
-  let maxTries = 20000;
-  let nums, solution;
-  let tries = 0;
+function generateNewChallenge() {
+  let attempts = 0;
+  let maxAttempts = 100;
+  
   do {
-    nums = [];
-    while (nums.length < 16) {
-      let n = randInt(-99, 99);
-      if (Math.abs(n) > 9) nums.push(n);
+    // Generate 6 random numbers from the Le compte est bon number set
+    // Numbers 1-10 (can appear multiple times) and special numbers 25, 50, 75, 100
+    const smallNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    const largeNumbers = [25, 50, 75, 100];
+    
+    challengeState.numbers = [];
+    challengeState.originalNumbers = [];
+    
+    // Generate 6 numbers (typically 1-2 large numbers and the rest small)
+    const numLarge = Math.floor(Math.random() * 2) + 1; // 1-2 large numbers
+    
+    // Add large numbers
+    for (let i = 0; i < numLarge; i++) {
+      const num = largeNumbers[Math.floor(Math.random() * largeNumbers.length)];
+      challengeState.numbers.push(num);
     }
-    solution = find24Daily(nums, ops, expOps, 24);
-    tries++;
-  } while (!solution);
-  return { numbers: nums, solution };
+    
+    // Add small numbers
+    for (let i = 0; i < (6 - numLarge); i++) {
+      const num = smallNumbers[Math.floor(Math.random() * smallNumbers.length)];
+      challengeState.numbers.push(num);
+    }
+    
+    challengeState.originalNumbers = [...challengeState.numbers];
+    
+    // Generate target number between 101-999
+    challengeState.target = Math.floor(Math.random() * 899) + 101;
+    
+    // Try to find a solution
+    challengeState.solution = findChallengeSolution([...challengeState.numbers], challengeState.target);
+    attempts++;
+    
+  } while (!challengeState.solution && attempts < maxAttempts);
+  
+  // If no solution found after many attempts, use a simpler target
+  if (!challengeState.solution) {
+    challengeState.target = challengeState.numbers[0] + challengeState.numbers[1];
+    challengeState.solution = [`${challengeState.numbers[0]} + ${challengeState.numbers[1]} = ${challengeState.target}`];
+  }
+  
+  // Reset game state
+  challengeState.steps = [];
+  challengeState.selectedNumber = null;
+  challengeState.pendingOp = null;
+  challengeState.finished = false;
+  challengeState.usedNumbers = [];
+  challengeState.startTime = new Date();
+  
+  // Start timer
+  if (challengeState.timerInterval) {
+    clearInterval(challengeState.timerInterval);
+  }
+  challengeState.timerInterval = setInterval(updateTimer, 1000);
 }
 
-function find24Daily(nums, allowedOps, expOps, target) {
-  for (let i = 0; i < nums.length; ++i) {
-    for (let j = 0; j < nums.length; ++j) {
-      if (i === j) continue;
-      for (let op of allowedOps) {
-        let a = nums[i], b = nums[j];
-        let result = evalBinary(a, op, b);
-        if (Math.abs(result - target) < 1e-6 && isFinite(result)) {
-          return [`${a} ${op} ${b} = ${result}`];
-        }
-        for (let exp of expOps) {
-          if (exp.check(a)) {
-            let ea = exp.fn(a);
-            let r2 = evalBinary(ea, op, b);
-            if (Math.abs(r2 - target) < 1e-6 && isFinite(r2)) {
-              return [`${exp.str(a)} = ${ea}`, `${ea} ${op} ${b} = ${r2}`];
-            }
+function findChallengeSolution(nums, target, maxSteps = 5) {
+  // Simple solution finder - try basic combinations
+  function tryAllCombinations(numbers, targetNum, steps = [], depth = 0) {
+    if (depth > maxSteps) return null;
+    
+    // Check if we have the target
+    if (numbers.includes(targetNum)) {
+      return steps;
+    }
+    
+    // Try all pairs of numbers with all operations
+    for (let i = 0; i < numbers.length; i++) {
+      for (let j = i + 1; j < numbers.length; j++) {
+        const num1 = numbers[i];
+        const num2 = numbers[j];
+        const operations = ['+', '-', '×', '÷'];
+        
+        for (const op of operations) {
+          let result;
+          let stepStr;
+          
+          switch(op) {
+            case '+':
+              result = num1 + num2;
+              stepStr = `${num1} + ${num2} = ${result}`;
+              break;
+            case '-':
+              if (num1 > num2) {
+                result = num1 - num2;
+                stepStr = `${num1} - ${num2} = ${result}`;
+              } else {
+                result = num2 - num1;
+                stepStr = `${num2} - ${num1} = ${result}`;
+              }
+              break;
+            case '×':
+              result = num1 * num2;
+              stepStr = `${num1} × ${num2} = ${result}`;
+              break;
+            case '÷':
+              if (num2 !== 0 && num1 % num2 === 0) {
+                result = num1 / num2;
+                stepStr = `${num1} ÷ ${num2} = ${result}`;
+              } else if (num1 !== 0 && num2 % num1 === 0) {
+                result = num2 / num1;
+                stepStr = `${num2} ÷ ${num1} = ${result}`;
+              } else {
+                continue; // Skip non-integer divisions
+              }
+              break;
           }
-          if (exp.check(b)) {
-            let eb = exp.fn(b);
-            let r2 = evalBinary(a, op, eb);
-            if (Math.abs(r2 - target) < 1e-6 && isFinite(r2)) {
-              return [`${exp.str(b)} = ${eb}`, `${a} ${op} ${eb} = ${r2}`];
+          
+          if (result > 0 && result === Math.floor(result) && result < 10000) {
+            const newNumbers = [...numbers];
+            newNumbers.splice(j, 1); // Remove larger index first
+            newNumbers.splice(i, 1); // Then smaller index
+            newNumbers.push(result);
+            
+            const newSteps = [...steps, stepStr];
+            
+            if (result === targetNum) {
+              return newSteps;
+            }
+            
+            const solution = tryAllCombinations(newNumbers, targetNum, newSteps, depth + 1);
+            if (solution) {
+              return solution;
             }
           }
         }
       }
     }
+    
+    return null;
   }
-  return null;
+  
+  return tryAllCombinations(nums, target);
 }
 
-function renderDailyGrid() {
-  for (let i = 0; i < 16; ++i) {
-    const cell = document.getElementById(`cell-${i}`);
-    cell.className = 'diamond-cell';
-    cell.textContent = dailyState.used[i] ? '' : dailyState.numbers[i];
-    if (dailyState.used[i]) cell.classList.add('blank');
-    if (dailyState.selected.length === 1 && dailyState.selected[0] === i) cell.classList.add('selected');
-    cell.onclick = function() {
-      if (dailyState.finished || dailyState.used[i]) return;
-      if (dailyState.selected.length === 0 && !dailyState.pendingOp) {
-        dailyState.selected = [i];
-        renderDailyGrid();
-      } else if (dailyState.selected.length === 1 && dailyState.pendingOp && dailyState.selected[0] !== i) {
-        let aIdx = dailyState.selected[0], bIdx = i;
-        let a = dailyState.numbers[aIdx], b = dailyState.numbers[bIdx];
-        let op = dailyState.pendingOp;
-        let result;
-        if (op === '+') result = a + b;
-        else if (op === '-') result = a - b;
-        else if (op === '×' || op === '*') result = a * b;
-        else if (op === '÷' || op === '/') {
-          if (b === 0) {
-            document.getElementById('daily-feedback').textContent = '❌ Division by zero!';
-            return;
-          }
-          result = a / b;
-        }
-        dailyState.used[aIdx] = true;
-        dailyState.numbers[bIdx] = result;
-        dailyState.steps.push(`${a} ${op} ${b} = ${result}`);
-        dailyState.selected = [];
-        dailyState.pendingOp = null;
-        let usableCount = dailyState.numbers.reduce((acc, n, idx) => acc + (!dailyState.used[idx] ? 1 : 0), 0);
-        if (usableCount === 1 && Math.abs(result - 24) < 1e-6) {
-          dailyState.finished = true;
-        } else if (usableCount === 1) {
-          dailyState.finished = true;
-        }
-        renderDailyGrid();
-      } else if (dailyState.selected.length === 1 && !dailyState.pendingOp) {
-        if (dailyState.selected[0] !== i) {
-          dailyState.selected = [i];
-          renderDailyGrid();
+function updateTimer() {
+  if (challengeState.finished || !challengeState.startTime) return;
+  
+  const elapsed = Math.floor((new Date() - challengeState.startTime) / 1000);
+  const minutes = Math.floor(elapsed / 60);
+  const seconds = elapsed % 60;
+  
+  const timerDiv = document.getElementById('challenge-timer');
+  if (timerDiv) {
+    timerDiv.textContent = `Time: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+}
+
+function renderChallengeGame() {
+  // Render target number
+  const targetDiv = document.getElementById('challenge-target');
+  targetDiv.innerHTML = `<div class="target-label">Target:</div><div class="target-number">${challengeState.target}</div>`;
+  
+  // Render available numbers
+  const numbersDiv = document.getElementById('challenge-numbers');
+  numbersDiv.innerHTML = '';
+  
+  challengeState.numbers.forEach((num, idx) => {
+    const numBtn = document.createElement('button');
+    numBtn.className = 'challenge-number-btn';
+    numBtn.textContent = num;
+    numBtn.disabled = challengeState.finished;
+    
+    // Highlight selected number or if we're waiting for second number
+    if (challengeState.selectedNumber === idx || 
+        (challengeState.pendingOp && challengeState.selectedNumber === null)) {
+      numBtn.classList.add('selected');
+    }
+    
+    numBtn.onclick = function() {
+      if (challengeState.finished) return;
+      
+      if (!challengeState.pendingOp) {
+        // First number selection
+        challengeState.selectedNumber = idx;
+        renderChallengeGame();
+      } else {
+        // Second number selection - perform operation
+        if (idx !== challengeState.selectedNumber) {
+          performOperation(challengeState.pendingOp, challengeState.selectedNumber, idx);
         }
       }
     };
-  }
-  const opsRow = document.getElementById('daily-ops-row');
+    
+    numbersDiv.appendChild(numBtn);
+  });
+  
+  // Render operations
+  const opsRow = document.getElementById('challenge-ops-row');
   opsRow.innerHTML = '';
-  // Standard operations row
-  const stdOpsDiv = document.createElement('div');
-  stdOpsDiv.className = 'ops-row';
-  ['+', '-', '×', '÷'].forEach(op => {
+  
+  const operations = ['+', '-', '×', '÷'];
+  operations.forEach(op => {
     const btn = document.createElement('button');
     btn.textContent = op;
     btn.className = 'sdg-op-btn';
-    btn.disabled = dailyState.finished || dailyState.selected.length !== 1;
-    btn.onclick = function() {
-      if (dailyState.finished || dailyState.selected.length !== 1) return;
-      dailyState.pendingOp = op;
-      renderDailyGrid();
-    };
-    if (dailyState.pendingOp === op) btn.style.background = '#ffe082';
-    stdOpsDiv.appendChild(btn);
-  });
-  opsRow.appendChild(stdOpsDiv);
-  // Exponential operations row
-  const expOpsDiv = document.createElement('div');
-  expOpsDiv.className = 'ops-row';
-  ['x²','x³','√x','∛x'].forEach((label, idx) => {
-    const btn = document.createElement('button');
-    btn.innerHTML = label;
-    btn.className = 'sdg-op-btn';
-    btn.disabled = dailyState.finished || dailyState.selected.length !== 1;
+    btn.disabled = challengeState.finished || challengeState.selectedNumber === null;
+    
+    if (challengeState.pendingOp === op) {
+      btn.classList.add('selected');
+      btn.style.background = '#ffe082';
+      btn.style.color = '#222';
+      btn.style.borderColor = '#fbc02d';
+    }
+    
     btn.onclick = function() {
       if (btn.disabled) return;
-      const expOps = ['square','cube','sqrt','cbrt'];
-      const exp = expOps[idx];
-      const i = dailyState.selected[0];
-      let a = dailyState.numbers[i];
-      let result, stepStr;
-      if (exp === 'square') {
-        result = a * a;
-        stepStr = `${a}² = ${result}`;
-      } else if (exp === 'cube') {
-        result = a * a * a;
-        stepStr = `${a}³ = ${result}`;
-      } else if (exp === 'sqrt') {
-        if (a < 0) {
-          document.getElementById('daily-feedback').textContent = '❌ Cannot sqrt negative!';
-          return;
-        }
-        result = Math.sqrt(a);
-        stepStr = `√${a} = ${result}`;
-      } else if (exp === 'cbrt') {
-        result = Math.cbrt(a);
-        stepStr = `∛${a} = ${result}`;
-      }
-      dailyState.used[i] = true;
-      let blankIdx = dailyState.used.findIndex(u => u);
-      if (blankIdx === -1) blankIdx = i;
-      dailyState.numbers[blankIdx] = result;
-      dailyState.used[blankIdx] = false;
-      dailyState.steps.push(stepStr);
-      dailyState.selected = [];
-      dailyState.pendingOp = null;
-      renderDailyGrid();
+      challengeState.pendingOp = op;
+      renderChallengeGame();
     };
-    expOpsDiv.appendChild(btn);
+    
+    opsRow.appendChild(btn);
   });
-  opsRow.appendChild(expOpsDiv);
-  const stepList = document.getElementById('daily-step-list');
-  stepList.innerHTML = dailyState.steps.map(s => `<div>${s}</div>`).join('');
-  const feedbackDiv = document.getElementById('daily-feedback');
-  if (dailyState.finished) {
-    let usableIdx = dailyState.numbers.findIndex((n, idx) => !dailyState.used[idx]);
-    let result = usableIdx !== -1 ? dailyState.numbers[usableIdx] : null;
-    let html = '';
-    if (Math.abs(result - 24) < 1e-6) {
-      html += `<div style='color:#1976d2;'><div>🎉 Correct!</div>`;
-    } else {
-      html += `<span style='color:#c00;'>Not 24!</span>`;
-    }
-    if (dailyState.solution) {
-      html += `<div style='margin-top:0.5em;'>Solution:</div>`;
-      for (const step of dailyState.solution) {
-        html += `<div><b>${step}</b></div>`;
+  
+  // Add instruction text
+  let instructionText = '';
+  if (challengeState.finished) {
+    instructionText = 'Game finished! Use the buttons below to continue.';
+  } else if (challengeState.selectedNumber === null && !challengeState.pendingOp) {
+    instructionText = 'Select a number to start';
+  } else if (challengeState.selectedNumber !== null && !challengeState.pendingOp) {
+    instructionText = `Selected: ${challengeState.numbers[challengeState.selectedNumber]} - Now select an operation`;
+  } else if (challengeState.pendingOp && challengeState.selectedNumber !== null) {
+    instructionText = `${challengeState.numbers[challengeState.selectedNumber]} ${challengeState.pendingOp} ? - Select second number`;
+  }
+  
+  // Update the instruction display
+  const instructionsDiv = document.querySelector('.challenge-instructions');
+  if (instructionsDiv) {
+    instructionsDiv.innerHTML = instructionText || 'Use the 6 numbers and basic operations (+, -, ×, ÷) to reach the target. Select number → operation → number!';
+  }
+  
+  // Render calculation steps
+  const stepList = document.getElementById('challenge-step-list');
+  stepList.innerHTML = challengeState.steps.map(s => `<div class="calculation-step">${s}</div>`).join('');
+  
+  // Check for win condition
+  checkWinCondition();
+}
+
+function performOperation(op, idx1, idx2) {
+  if (idx1 === idx2 || idx1 === null || idx2 === null) return;
+  
+  const num1 = challengeState.numbers[idx1];
+  const num2 = challengeState.numbers[idx2];
+  
+  let result;
+  let stepStr;
+  
+  switch(op) {
+    case '+':
+      result = num1 + num2;
+      stepStr = `${num1} + ${num2} = ${result}`;
+      break;
+    case '-':
+      // Always subtract smaller from larger to avoid negatives
+      if (num1 >= num2) {
+        result = num1 - num2;
+        stepStr = `${num1} - ${num2} = ${result}`;
+      } else {
+        result = num2 - num1;
+        stepStr = `${num2} - ${num1} = ${result}`;
       }
+      break;
+    case '×':
+      result = num1 * num2;
+      stepStr = `${num1} × ${num2} = ${result}`;
+      break;
+    case '÷':
+      // Check for division by zero and ensure clean division
+      if (num2 === 0 || num1 === 0) {
+        document.getElementById('challenge-feedback').innerHTML = '<div style="color: #d32f2f; font-weight: 500;">❌ Cannot divide by zero!</div>';
+        setTimeout(() => {
+          document.getElementById('challenge-feedback').textContent = '';
+        }, 2000);
+        return;
+      }
+      
+      // For Le compte est bon, we want integer results when possible
+      if (num1 >= num2 && num1 % num2 === 0) {
+        result = num1 / num2;
+        stepStr = `${num1} ÷ ${num2} = ${result}`;
+      } else if (num2 > num1 && num2 % num1 === 0) {
+        result = num2 / num1;
+        stepStr = `${num2} ÷ ${num1} = ${result}`;
+      } else {
+        // Allow non-integer results but prefer cleaner ones
+        result = num1 / num2;
+        stepStr = `${num1} ÷ ${num2} = ${result}`;
+        if (result !== Math.floor(result)) {
+          result = Math.round(result * 100) / 100; // Round to 2 decimal places
+          stepStr = `${num1} ÷ ${num2} = ${result}`;
+        }
+      }
+      break;
+  }
+  
+  // Only allow positive results (as per Le compte est bon rules)
+  if (result <= 0 || !isFinite(result)) {
+    document.getElementById('challenge-feedback').innerHTML = '<div style="color: #d32f2f; font-weight: 500;">❌ Result must be positive!</div>';
+    setTimeout(() => {
+      document.getElementById('challenge-feedback').textContent = '';
+    }, 2000);
+    return;
+  }
+  
+  // Record the step
+  challengeState.steps.push(stepStr);
+  challengeState.usedNumbers.push(num1, num2);
+  
+  // Remove the two used numbers and add the result
+  const [smallerIdx, largerIdx] = [idx1, idx2].sort((a, b) => a - b);
+  challengeState.numbers.splice(largerIdx, 1); // Remove larger index first
+  challengeState.numbers.splice(smallerIdx, 1); // Then remove smaller index
+  challengeState.numbers.push(result);
+  
+  // Clear selection state
+  challengeState.selectedNumber = null;
+  challengeState.pendingOp = null;
+  
+  // Clear any previous feedback
+  document.getElementById('challenge-feedback').textContent = '';
+  
+  // Re-render
+  renderChallengeGame();
+}
+
+function checkWinCondition() {
+  const feedbackDiv = document.getElementById('challenge-feedback');
+  
+  // Check if we have exactly the target in our numbers
+  if (challengeState.numbers.includes(challengeState.target)) {
+    challengeState.finished = true;
+    if (challengeState.timerInterval) {
+      clearInterval(challengeState.timerInterval);
     }
-    html += `</div>`;
-    feedbackDiv.innerHTML = html;
-  } else {
-    feedbackDiv.textContent = '';
+    const elapsed = Math.floor((new Date() - challengeState.startTime) / 1000);
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    feedbackDiv.innerHTML = `<div class="success-message">🎉 Perfect! You found ${challengeState.target} in ${timeStr}!</div>`;
+    return;
+  }
+  
+  // If only one number left, check how close we are
+  if (challengeState.numbers.length === 1) {
+    challengeState.finished = true;
+    if (challengeState.timerInterval) {
+      clearInterval(challengeState.timerInterval);
+    }
+    const result = challengeState.numbers[0];
+    const difference = Math.abs(result - challengeState.target);
+    const elapsed = Math.floor((new Date() - challengeState.startTime) / 1000);
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    if (difference === 0) {
+      feedbackDiv.innerHTML = `<div class="success-message">🎉 Perfect! You found ${challengeState.target} in ${timeStr}!</div>`;
+    } else {
+      feedbackDiv.innerHTML = `<div class="close-message">Close! You got ${result}, target was ${challengeState.target} (off by ${difference}) - Time: ${timeStr}</div>`;
+    }
   }
 }
 
 
+// Challenge mode button handlers
 document.addEventListener('DOMContentLoaded', function() {
-  var dailyUndoBtn = document.getElementById('daily-undo');
-  var dailyGiveUpBtn = document.getElementById('daily-giveup');
-  var dailyBackBtn = document.getElementById('daily-back');
-  if (dailyUndoBtn) {
-    dailyUndoBtn.onclick = function() {
-      if (dailyState.steps.length === 0) {
-        // No steps to undo, do nothing
+  const challengeModeBtn = document.getElementById('challenge-mode-btn');
+  if (challengeModeBtn) {
+    challengeModeBtn.onclick = showChallengeMode;
+  }
+  
+  const challengeUndoBtn = document.getElementById('challenge-undo');
+  if (challengeUndoBtn) {
+    challengeUndoBtn.onclick = function() {
+      if (challengeState.steps.length === 0) {
+        // If no steps to undo, just clear current selection
+        challengeState.selectedNumber = null;
+        challengeState.pendingOp = null;
+        renderChallengeGame();
         return;
       }
-      // Remove last step
-      dailyState.steps.pop();
-      // Reset grid to initial numbers
-      let { numbers } = generateSolvableDailyMode();
-      dailyState.numbers = numbers.slice();
-      dailyState.used = Array(16).fill(false);
-      dailyState.finished = false;
-      dailyState.selected = [];
-      dailyState.pendingOp = null;
-      // Replay all steps
-      for (const step of dailyState.steps) {
-        // Binary op
-        const match = step.match(/(-?\d+(?:\.\d+)?) ([+\-×÷]) (-?\d+(?:\.\d+)?) = (-?\d+(?:\.\d+)?)/);
+      
+      // Remove the last step and reset to original, then replay
+      challengeState.steps.pop();
+      challengeState.numbers = [...challengeState.originalNumbers];
+      challengeState.usedNumbers = [];
+      challengeState.selectedNumber = null;
+      challengeState.pendingOp = null;
+      challengeState.finished = false;
+      
+      // Replay all remaining steps
+      const stepsToReplay = [...challengeState.steps];
+      challengeState.steps = [];
+      
+      for (const step of stepsToReplay) {
+        const match = step.match(/(\d+(?:\.\d+)?) ([+\-×÷]) (\d+(?:\.\d+)?) = (\d+(?:\.\d+)?)/);
         if (match) {
-          const a = Number(match[1]);
+          const num1 = parseFloat(match[1]);
           const op = match[2];
-          const b = Number(match[3]);
-          const result = Number(match[4]);
-          let aIdx = dailyState.numbers.findIndex((n, idx) => !dailyState.used[idx] && n === a);
-          let bIdx = dailyState.numbers.findIndex((n, idx) => !dailyState.used[idx] && n === b && idx !== aIdx);
-          if (aIdx !== -1 && bIdx !== -1) {
-            dailyState.used[aIdx] = true;
-            dailyState.numbers[bIdx] = result;
-          }
-          continue;
-        }
-        // Exponential op
-        const expMatch = step.match(/^([√∛]?)(-?\d+(?:\.\d+)?)(?:²|³)? = (-?\d+(?:\.\d+)?)/);
-        if (expMatch) {
-          const input = Number(expMatch[2]);
-          const result = Number(expMatch[3]);
-          let inputIdx = dailyState.numbers.findIndex((n, idx) => !dailyState.used[idx] && n === input);
-          if (inputIdx !== -1) {
-            dailyState.used[inputIdx] = true;
-            // Place result in first blank
-            let blankIdx = dailyState.used.findIndex(u => u);
-            if (blankIdx === -1) blankIdx = inputIdx;
-            dailyState.numbers[blankIdx] = result;
-            dailyState.used[blankIdx] = false;
+          const num2 = parseFloat(match[3]);
+          
+          const idx1 = challengeState.numbers.findIndex(n => Math.abs(n - num1) < 0.001);
+          const idx2 = challengeState.numbers.findIndex((n, i) => Math.abs(n - num2) < 0.001 && i !== idx1);
+          
+          if (idx1 !== -1 && idx2 !== -1) {
+            performOperation(op, idx1, idx2);
           }
         }
       }
-      renderDailyGrid();
+      
+      renderChallengeGame();
     };
   }
-  if (dailyGiveUpBtn) {
-    dailyGiveUpBtn.onclick = function() {
-      dailyState.finished = true;
-      renderDailyGrid();
+  
+  const challengeGiveUpBtn = document.getElementById('challenge-give-up');
+  if (challengeGiveUpBtn) {
+    challengeGiveUpBtn.onclick = function() {
+      challengeState.finished = true;
+      if (challengeState.timerInterval) {
+        clearInterval(challengeState.timerInterval);
+      }
+      
+      const feedbackDiv = document.getElementById('challenge-feedback');
+      let solutionHtml = '<div style="color: #f57c00; font-weight: 600; margin-bottom: 1em;">Game Over!</div>';
+      
+      if (challengeState.solution && challengeState.solution.length > 0) {
+        solutionHtml += '<div style="margin-bottom: 0.5em; font-weight: 600;">One possible solution:</div>';
+        challengeState.solution.forEach(step => {
+          solutionHtml += `<div style="background: #fff3e0; border: 1px solid #ffcc02; padding: 0.5em; margin: 0.3em 0; border-radius: 0.3em;">${step}</div>`;
+        });
+      } else {
+        solutionHtml += '<div>No solution was found for this combination.</div>';
+      }
+      
+      feedbackDiv.innerHTML = solutionHtml;
+      renderChallengeGame();
     };
   }
-  if (dailyBackBtn) {
-    dailyBackBtn.onclick = function() {
-      document.getElementById('daily-mode-game').style.display = 'none';
+  
+  const challengeResetBtn = document.getElementById('challenge-reset');
+  if (challengeResetBtn) {
+    challengeResetBtn.onclick = function() {
+      challengeState.numbers = [...challengeState.originalNumbers];
+      challengeState.steps = [];
+      challengeState.selectedNumber = null;
+      challengeState.pendingOp = null;
+      challengeState.finished = false;
+      challengeState.usedNumbers = [];
+      challengeState.startTime = new Date();
+      if (challengeState.timerInterval) {
+        clearInterval(challengeState.timerInterval);
+      }
+      challengeState.timerInterval = setInterval(updateTimer, 1000);
+      document.getElementById('challenge-feedback').innerHTML = '';
+      renderChallengeGame();
+    };
+  }
+  
+  const challengeNewBtn = document.getElementById('challenge-new');
+  if (challengeNewBtn) {
+    challengeNewBtn.onclick = function() {
+      // Clear any previous feedback before generating new challenge
+      document.getElementById('challenge-feedback').innerHTML = '';
+      generateNewChallenge();
+      renderChallengeGame();
+    };
+  }
+  
+  const challengeBackBtn = document.getElementById('challenge-back');
+  if (challengeBackBtn) {
+    challengeBackBtn.onclick = function() {
+      // Clear feedback and stop timer when going back to main menu
+      document.getElementById('challenge-feedback').innerHTML = '';
+      if (challengeState.timerInterval) {
+        clearInterval(challengeState.timerInterval);
+      }
+      document.getElementById('challenge-mode-game').style.display = 'none';
       mainMenuDiv.style.display = '';
     };
   }
 });
-}
