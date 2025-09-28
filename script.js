@@ -751,8 +751,81 @@ function resetSDGState(numbers) {
   sdgState.algebraExpr = null;
 }
 
+function showTemporaryMessage(message, color = '#c00', duration = 3000) {
+  sdgFeedbackDiv.textContent = message;
+  sdgFeedbackDiv.style.color = color;
+  
+  // Clear any existing timeout
+  if (window.sdgMessageTimeout) {
+    clearTimeout(window.sdgMessageTimeout);
+  }
+  
+  // Set new timeout to clear message
+  window.sdgMessageTimeout = setTimeout(() => {
+    sdgFeedbackDiv.textContent = '';
+    sdgFeedbackDiv.style.color = '';
+  }, duration);
+}
+
+function updateSDGInstructions() {
+  let instructionText = '';
+  
+  if (sdgState.finished) {
+    // Game is over, show appropriate message
+    const numRemaining = sdgState.numbers.length - sdgState.used.filter(Boolean).length + (sdgState.algebraExpr ? 1 : 0);
+    if (numRemaining === 1) {
+      const finalResult = sdgState.numbers.find((n, i) => !sdgState.used[i]);
+      if (Math.abs(finalResult - 24) < 1e-6) {
+        instructionText = 'Excellent work! You reached 24!';
+      } else {
+        instructionText = `You have ${finalResult}. Try again to reach 24!`;
+      }
+    } else {
+      instructionText = 'Game over. Use Give Up to see a solution.';
+    }
+  } else if (sdgState.pendingOp) {
+    // User has selected a number and operation, needs second number
+    const selectedNum = sdgState.selected[0];
+    let numText = selectedNum === 'expr' ? 'expression' : sdgState.numbers[selectedNum];
+    instructionText = `${numText} ${sdgState.pendingOp} ? → Select the second number`;
+  } else if (sdgState.selected.length === 1) {
+    // User has selected a number, needs operation
+    const selectedNum = sdgState.selected[0];
+    let numText = selectedNum === 'expr' ? 'expression' : sdgState.numbers[selectedNum];
+    instructionText = `${numText} ? → Choose an operation (+, -, ×, ÷)`;
+  } else {
+    // No selection, provide mode-specific instruction
+    if (currentMode === 'variables') {
+      if (sdgState.xValue === null && /x/.test(sdgState.algebraExpr?.display || '')) {
+        instructionText = 'Set the value of X using the numbers';
+      } else if (sdgState.yValue === null && /y/.test(sdgState.algebraExpr?.display || '')) {
+        instructionText = 'Set the value of Y using the numbers';
+      } else {
+        instructionText = 'Combine numbers and operations to make 24!';
+      }
+    } else if (currentMode === 'operations') {
+      instructionText = 'Use numbers and operations (including powers/roots) to make 24!';
+    } else {
+      instructionText = 'Select a number to start building an expression that equals 24!';
+    }
+  }
+  
+  // Update the expression div with instruction text
+  if (sdgState.steps.length === 0) {
+    sdgExprDiv.innerHTML = `<div class="game-instructions">${instructionText}</div>`;
+  } else {
+    // Show steps with instruction text above
+    let stepsHtml = sdgState.steps.map(s => `<div>${s}</div>`).join('');
+    sdgExprDiv.innerHTML = `<div class="game-instructions" style="margin-bottom: 0.8em;">${instructionText}</div>${stepsHtml}`;
+  }
+}
+
 function renderSDG() {
   const roundFinished = sdgState.finished;
+  
+  // Update instruction text based on game state
+  updateSDGInstructions();
+  
   // Responsive flex container for numbers row
   sdgNumbersDiv.innerHTML = '';
   sdgNumbersDiv.style.display = 'flex';
@@ -840,7 +913,7 @@ function renderSDG() {
             const needsX = /x/.test(sdgState.algebraExpr.display);
             const needsY = /y/.test(sdgState.algebraExpr.display);
             if ((needsX && sdgState.xValue === null) || (needsY && sdgState.yValue === null)) {
-              sdgFeedbackDiv.textContent = 'Set variable(s) first!';
+              showTemporaryMessage('Set variable(s) first!');
               return;
             }
             a = sdgState.algebraExpr.evalFn(
@@ -848,7 +921,7 @@ function renderSDG() {
               /y/.test(sdgState.algebraExpr.display) ? sdgState.yValue : 0
             );
             if (isNaN(a) || !isFinite(a)) {
-              sdgFeedbackDiv.textContent = 'Expression is not a number!';
+              showTemporaryMessage('Expression is not a number!');
               return;
             }
             b = sdgState.numbers[idx];
@@ -874,7 +947,7 @@ function renderSDG() {
         else if (op === '×') result = a * b;
         else if (op === '÷') {
           if (b === 0) {
-            sdgFeedbackDiv.textContent = '❌ Division by zero!';
+            showTemporaryMessage('Cannot divide by zero!');
             return;
           }
           result = a / b;
@@ -962,12 +1035,12 @@ function renderSDG() {
           const needsX = /x/.test(sdgState.algebraExpr.display);
           const needsY = /y/.test(sdgState.algebraExpr.display);
           if ((needsX && sdgState.xValue === null) || (needsY && sdgState.yValue === null)) {
-            sdgFeedbackDiv.textContent = 'Set variable(s) first!';
+            showTemporaryMessage('Set variable(s) first!');
             return;
           }
           b = sdgState.algebraExpr.evalFn(sdgState.xValue, sdgState.yValue);
           if (isNaN(b) || !isFinite(b)) {
-            sdgFeedbackDiv.textContent = 'Expression is not a number!';
+            showTemporaryMessage('Expression is not a number!');
             return;
           }
           aLabel = a;
@@ -981,7 +1054,7 @@ function renderSDG() {
         else if (op === '×') result = a * b;
         else if (op === '÷') {
           if (b === 0) {
-            sdgFeedbackDiv.textContent = '❌ Division by zero!';
+            showTemporaryMessage('Cannot divide by zero!');
             return;
           }
           result = a / b;
@@ -1078,7 +1151,7 @@ function renderSDG() {
           stepStr = `${a}³ = ${result}`;
         } else if (exp === 'sqrt') {
           if (a < 0) {
-            sdgFeedbackDiv.textContent = '❌ Cannot sqrt negative!';
+            showTemporaryMessage('Cannot take square root of negative number!');
             return;
           }
           result = Math.sqrt(a);
@@ -1193,14 +1266,12 @@ function renderSDG() {
   varRow.appendChild(yBtn);
   sdgOpsDiv.appendChild(varRow);
   }
-  // Render steps
-  sdgExprDiv.innerHTML = sdgState.steps.map(s => `<div>${s}</div>`).join('');
   // Show solution if round is finished and correct
   // If finished and correct, show solution and disable undo
   // Only end the round if there is one number box (or expr) remaining
   const numRemaining = sdgState.numbers.length - sdgState.used.filter(Boolean).length + (sdgState.algebraExpr ? 1 : 0);
   if (sdgState.finished && numRemaining === 1 && Math.abs(sdgState.numbers.find((n, i) => !sdgState.used[i]) - 24) < 1e-6) {
-    let html = `<div style='color:#1976d2;'><div>🎉 Correct!</div>`;
+    let html = `<div style='color:#1976d2;'><div>Perfect!</div>`;
     if (currentSolution) {
       const steps = currentSolution.split('<br>');
       html += `<div style='margin-top:0.5em;'>Solution:</div>`;
@@ -1216,7 +1287,7 @@ function renderSDG() {
     sdgGiveUpBtn.style.display = 'none';
   } else if (sdgState.finished && numRemaining === 1) {
     // If finished and incorrect, allow undo
-    sdgFeedbackDiv.textContent = '❌ Not 24!';
+    showTemporaryMessage('Result must equal 24!');
     sdgFeedbackDiv.style.color = '#c00';
     sdgNextBtn.style.display = '';
     sdgGiveUpBtn.style.display = 'none';
@@ -1233,6 +1304,11 @@ function startSingleDigitsGame(numbers) {
   resetSDGState(numbers);
   renderSDG();
   sdgFeedbackDiv.textContent = '';
+  sdgFeedbackDiv.style.color = '';
+  // Clear any temporary message timeouts
+  if (window.sdgMessageTimeout) {
+    clearTimeout(window.sdgMessageTimeout);
+  }
   singleDigitsGameDiv.style.display = '';
   mainMenuDiv.style.display = 'none';
   sdgNextBtn.style.display = 'none';
@@ -1876,7 +1952,7 @@ function performOperation(op, idx1, idx2) {
     case '÷':
       // Check for division by zero and ensure clean division
       if (num2 === 0 || num1 === 0) {
-        document.getElementById('challenge-feedback').innerHTML = '<div style="color: #d32f2f; font-weight: 500;">❌ Cannot divide by zero!</div>';
+        document.getElementById('challenge-feedback').innerHTML = '<div style="color: #d32f2f; font-weight: 500;">Cannot divide by zero!</div>';
         setTimeout(() => {
           document.getElementById('challenge-feedback').textContent = '';
         }, 2000);
@@ -1902,16 +1978,14 @@ function performOperation(op, idx1, idx2) {
       break;
   }
   
-  // Only allow positive results (as per Le compte est bon rules)
+      // Only allow positive results (as per Le compte est bon rules)
   if (result <= 0 || !isFinite(result)) {
-    document.getElementById('challenge-feedback').innerHTML = '<div style="color: #d32f2f; font-weight: 500;">❌ Result must be positive!</div>';
+    document.getElementById('challenge-feedback').innerHTML = '<div style="color: #d32f2f; font-weight: 500;">Result must be positive!</div>';
     setTimeout(() => {
       document.getElementById('challenge-feedback').textContent = '';
     }, 2000);
     return;
-  }
-  
-  // Record the step
+  }  // Record the step
   challengeState.steps.push(stepStr);
   challengeState.usedNumbers.push(num1, num2);
   
@@ -1945,7 +2019,7 @@ function checkWinCondition() {
     const minutes = Math.floor(elapsed / 60);
     const seconds = elapsed % 60;
     const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    feedbackDiv.innerHTML = `<div class="success-message">🎉 Perfect! You found ${challengeState.target} in ${timeStr}!</div>`;
+    feedbackDiv.innerHTML = `<div class="success-message">Perfect! You found ${challengeState.target} in ${timeStr}!</div>`;
     return;
   }
   
@@ -1963,7 +2037,7 @@ function checkWinCondition() {
     const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     
     if (difference === 0) {
-      feedbackDiv.innerHTML = `<div class="success-message">🎉 Perfect! You found ${challengeState.target} in ${timeStr}!</div>`;
+      feedbackDiv.innerHTML = `<div class="success-message">Perfect! You found ${challengeState.target} in ${timeStr}!</div>`;
     } else {
       feedbackDiv.innerHTML = `<div class="close-message">Close! You got ${result}, target was ${challengeState.target} (off by ${difference}) - Time: ${timeStr}</div>`;
     }

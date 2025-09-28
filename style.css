@@ -1112,10 +1112,17 @@ footer {
   color: #1976d2;
   font-weight: 400;
   cursor: pointer;
-  transition: background 0.18s, color 0.18s, border 0.18s;
-  box-shadow: 0 1px 4px #1976d211;
+  transition: background 0.18s, color 0.18s, border 0.18s, transform 0.18s, box-shadow 0.18s;
+  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.15);
   outline: none;
   -webkit-tap-highlight-color: transparent !important;
+}
+
+.sdg-btn:hover:not(:disabled):not(.selected) {
+  background: #e3f2fd;
+  border-color: #0d47a1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.25);
 }
 
 .sdg-op-btn.selected,
@@ -1130,10 +1137,13 @@ footer {
   box-shadow: none !important;
   cursor: pointer !important;
 }
-.sdg-op-btn:hover,
-.sdg-op-btn:active,
-.sdg-op-btn:focus,
-.sdg-op-btn:focus-visible,
+.sdg-op-btn:hover:not(:disabled):not(.selected) {
+  background: #e3f2fd;
+  border-color: #0d47a1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.25);
+}
+
 .sdg-op-btn.no-hover:hover,
 .sdg-op-btn.no-hover:active,
 .sdg-op-btn.no-hover:focus,
@@ -1144,6 +1154,7 @@ footer {
   box-shadow: none !important;
   border-color: inherit !important;
   cursor: pointer !important;
+  transform: none !important;
 }
 .sdg-btn:disabled, .sdg-op-btn:disabled {
   background: #eee;
@@ -1176,6 +1187,20 @@ footer {
   max-width: 500px;
   border: 1px solid #e0e7ff;
   line-height: 1.4;
+}
+
+.game-instructions {
+  text-align: center;
+  margin: 0.3em auto 0.5em auto;
+  font-size: 0.9em;
+  color: #666;
+  background: #f8f9ff;
+  padding: 0.6em 1em;
+  border-radius: 0.4em;
+  max-width: 400px;
+  border: 1px solid #e0e7ff;
+  line-height: 1.3;
+  font-style: italic;
 }
 
 .challenge-timer {
